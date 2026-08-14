@@ -1,0 +1,4 @@
+interface:
+  display_name: "チャット検討内容の記録"
+  short_description: "このチャットの検討内容を逐語録ではない読みやすい記録へ再構成する"
+  default_prompt: "$transcript-chats-conversation を使って、このチャットの検討内容を記録してください。"

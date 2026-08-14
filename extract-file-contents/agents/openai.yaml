@@ -1,0 +1,4 @@
+interface:
+  display_name: "ファイル本文抽出"
+  short_description: "各種ファイルの本文・表・構造を要約せず忠実なテキストへ抽出する"
+  default_prompt: "$extract-file-contents を使って、このファイルの本文を抽出してください。"

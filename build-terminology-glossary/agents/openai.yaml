@@ -1,0 +1,4 @@
+interface:
+  display_name: "用語集作成"
+  short_description: "資料内の根拠から正式表記・表記揺れ・文字起こし候補を整理する"
+  default_prompt: "$build-terminology-glossary を使って、この資料から用語集を作成してください。"
