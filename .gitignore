@@ -25,10 +25,13 @@ secrets.json
 # local content excluded*
 !# local content excluded
 !# local content excludedcommunication-writing.md
+!# local content excludedcognitive-rhythm-writing.md
 !# local content excludeddocument-reformatting.md
 !# local content excludedediting-guardrails.md
 !# local content excludedformatting-normalization.md
 !# local content excludedmarkdown-formatting.md
 !# local content excludedproofreading.md
 !# local content excludedprose-basics.md
+!# local content excludedtechnical-writing.md
+!# local content excludedtranslation-rules.md
 !# local content excludedwriting-improvement.md
