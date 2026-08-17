@@ -1,4 +1,0 @@
-interface:
-  display_name: "スクリーンショットOCR"
-  short_description: "画像やスクリーンショットから文字と表示構造を忠実に抽出する"
-  default_prompt: "$ocr-screenshots を使って、この画像の文字と構造を抽出してください。"
