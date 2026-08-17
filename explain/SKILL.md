@@ -1,6 +1,8 @@
 ---
 name: explain
-description: 選択された語句・フレーズ・概念を、周辺文脈と読み手の前提知識に合わせて日本語で明確かつ簡潔に説明する場合に使う。
+description: 選択語句、フレーズ、概念を説明する。原則としてチャットに出力し、ページは編集しない。
+role: Main
+tags: [explanation]
 ---
 
 # Explain

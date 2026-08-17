@@ -1,6 +1,8 @@
 ---
 name: review-text
-description: 既存文章を診断し、必要な工程だけを適用して、原意と事実関係を維持しながら論理、文章構造、読みやすさ、対人表現、表記を改善する。文章のレビュー、推敲、校正、整形、改善を依頼された場合に使う。
+description: 既存文章のレビュー、推敲、校正、整形、改善。既存メール下書きの推敲も入口はこれだが、文面規範と出力形式は Draft Email / Business Email を優先する。
+role: Main
+tags: [review, text, japanese, english]
 ---
 
 # Review Text
@@ -19,9 +21,9 @@ description: 既存文章を診断し、必要な工程だけを適用して、�
   - 入力形式の崩れ、意味・論理・情報順序、文章構造、対人表現、表示構造、誤字・表記を分けて確認する。
   - 人に向けた文章では、目的に不要な非難、意図の決めつけ、過剰または不十分な謝罪、根拠に合わない断定、曖昧な依頼を確認する。
 4. 問題がある工程だけを適用する。
-  - 入力構造が崩れている場合だけ、[書式正規化工程](..# local content excludedformatting-normalization.md)を適用する。
+  - 入力構造が崩れている場合だけ、[書式・表示構造工程](..# local content excludedformatting.md)の「書式正規化（前処理）」を適用する。
   - 文章の意味・論理・読みやすさ・文章構造を改善する必要がある場合だけ、[文章改善工程](..# local content excludedwriting-improvement.md)を適用する。
-  - 表示構造だけを整える必要がある場合だけ、[表示構造整形工程](..# local content excludeddocument-reformatting.md)を適用する。
+  - 表示構造だけを整える必要がある場合だけ、[書式・表示構造工程](..# local content excludedformatting.md)の「表示構造整形（最終整形）」を適用する。
   - 完成稿の機械的な誤りを確認する必要がある場合だけ、[最終校正工程](..# local content excludedproofreading.md)を適用する。
   - 誤字、表記揺れ、文法、リンク・メンション破損などは、必要最小限で確認・修正する。
 5. 修正後に再評価する。

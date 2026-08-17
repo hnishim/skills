@@ -1,3 +1,10 @@
+---
+name: proofreading
+description: 完成稿の誤字、文法、句読点、表記、用語、整形上の誤りを必要最小限で確認・修正する。
+role: Component
+tags: [text, review, japanese, english, preserve-structure]
+---
+
 # 最終校正工程
 
 完成稿に対して、誤字、文法、句読点、表記、用語、整形上の誤りを確認し、必要最小限の修正だけを行う。内容改善や大規模な言い換えは行わない。

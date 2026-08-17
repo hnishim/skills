@@ -1,6 +1,8 @@
 ---
 name: executive-summary
-description: 提案書や案件内容から、背景、提案の核、期待成果、概算規模、期間、次のアクションを経営層向けの一枚要約にまとめる場合に使う。
+description: 提案書・案件内容の経営層向け要約を作成する。提案書内のエグゼクティブサマリーでは Draft Proposal の一部として使う。
+role: Component
+tags: [text, proposal, external-facing, presentation]
 ---
 
 # Executive Summary

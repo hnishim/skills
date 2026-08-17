@@ -1,6 +1,8 @@
 ---
 name: draft-email
-description: 日本語・英語のメールや連絡文の文案、返信案、Gmail下書き、日程調整メールを作成する場合に使う。送信は行わず、文案または下書きまでを扱う。
+description: メール・連絡文の文案作成、返信案、Gmail下書き作成、日程調整メールの文面作成。
+role: Main
+tags: [text, email, gmail, external-facing]
 ---
 
 # Draft Email

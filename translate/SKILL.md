@@ -1,6 +1,8 @@
 ---
 name: translate
-description: 選択範囲または提示された文章を翻訳する場合に使う。読解用翻訳と対訳版作成を区別し、固有名詞・専門用語・構造・情報量を用途に応じて保持する。
+description: 選択範囲またはプロンプト内の文章を翻訳する。ページ全体の対訳版は Add English Version を使う。
+role: Main
+tags: [translation, japanese, english]
 ---
 
 # Translate

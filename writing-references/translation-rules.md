@@ -1,3 +1,10 @@
+---
+name: translation-rules
+description: 翻訳・対訳版作成の共通規範。
+role: Common Norm
+tags: [translation, japanese, english]
+---
+
 # 翻訳規範
 
 **適用範囲**：文書・メール・議事・資料の翻訳に共通する規範。プラットフォーム非依存であり、単体で他のLLMへ持ち出して使用できる。出力先の指定や、編集ツール固有の配置手順は本ページの対象外。
