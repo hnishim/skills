@@ -1,3 +1,10 @@
+---
+name: markdown-formatting
+description: Markdownとしてレンダリングされる文章の表示構造を整える共通規範。ブロック区切り、見出し、リスト、コード、既存方言・拡張記法の保持を扱う。
+role: Common Norm
+tags: [text, review, preserve-structure]
+---
+
 # Markdown表示規範
 
 **適用範囲**：MarkdownファイルまたはMarkdownとしてレンダリングされる文章の表示構造。本文の語句、文法、主張、論理、事実関係は扱わない。Markdown方言、既存形式、ツール固有の拡張が指定されている場合は、それらを優先する。
