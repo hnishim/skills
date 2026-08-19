@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Add Commit Push"
+  short_description: "変更を安全にステージングしてコミットとプッシュを実行"
+  default_prompt: "Run $git-add-commit-push with the git-actions custom agent to stage the intended changes, commit them, and push the current branch safely."
