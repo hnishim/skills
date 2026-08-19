@@ -1,6 +1,6 @@
 ---
 name: git-add-commit-push
-description: Use when the user asks to stage changes, create a Git commit, and push the current branch in one action. Safely perform git add, git commit, and git push with explicit scope checks, secret detection, protected-branch safeguards, and remote-state validation.
+description: Use when the user asks to stage changes, create a Git commit, and push the current branch in one action. Infer the intended commit scope from the current conversation when paths are omitted, then safely perform git add, git commit, and git push with scope checks, secret detection, protected-branch safeguards, and remote-state validation.
 ---
 
 # Git Add, Commit, Push
@@ -9,20 +9,33 @@ description: Use when the user asks to stage changes, create a Git commit, and p
 
 ## 実行エージェント
 
-このスキルは、カスタムエージェント `git-actions` で実行する。`git-actions` は `gpt-5.6-luna`、推論レベル `low` を使用する。
+Gitの状態を変更する処理は、カスタムエージェント `git-actions` で実行する。
 
 - 別のエージェントからこのスキルを呼び出した場合、Gitの状態変更を始める前に `git-actions` へ委譲する。
-- 委譲できない実行環境では、`git add`、`git commit`、`git push` を実行せず、必要なエージェント名を報告して停止する。
-- `agents/openai.yaml` は表示用メタデータであり、モデル選択の代替にはしない。
+- `git-actions` を選択できない実行環境では、`git add`、`git commit`、`git push` を実行せず、必要なエージェント名を報告して停止する。
+- モデル、推論レベル、sandbox設定はカスタムエージェントTOMLで定義する。
 
 ## 入力とステージング範囲
 
-- ユーザーが明示したファイル・ディレクトリだけを対象にする。パスを受け取ったら `git add -- <paths>` を使う。
+- ユーザーが明示したファイル・ディレクトリ、または「会話からコミット対象を判定する」の規則で一意に特定できた変更だけを対象にする。パスを受け取ったら `git add -- <paths>` を使う。
 - ユーザーが「全変更」「すべて」などと明示した場合だけ、リポジトリ全体を対象に `git add -A -- :/` を使う。
-- 対象範囲が指定されていない場合、変更候補を一覧表示して確認を求める。`git add .`、無指定の `git add -A`、暗黙の全量ステージングは行わない。
+- 会話から対象を一意に特定できない場合、変更候補を一覧表示して確認を求める。`git add .`、無指定の `git add -A`、暗黙の全量ステージングは行わない。
 - 実行前から存在するステージ済み変更が対象範囲に含まれると明示されていない場合、その変更をコミットせず停止する。既存のステージ済み変更を勝手に解除・上書きしない。
 - 対象外の変更、未追跡ファイル、削除ファイルを保持し、ステージング・コミット・削除の対象にしない。
-- ユーザーが指定したコミットメッセージはそのまま使う。指定がなければ、ステージ済み差分と直近のコミット形式から、変更内容と目的を説明するメッセージを生成する。
+- ユーザーが指定したコミットメッセージはそのまま使う。指定がなければ、会話中の今回の目的・Plan・実装報告を優先し、ステージ済み差分と直近のコミット形式を補助情報としてメッセージを生成する。
+
+### 会話からコミット対象を判定する
+
+明示的なファイルパスがない場合は、現在の会話から対象範囲を次の順で抽出する。
+
+1. ユーザーが明示したファイル・ディレクトリ、承認済みPlanの対象範囲を最優先する。
+2. 現在のタスクについて、直前の実装報告や完了報告に記載された変更ファイルを候補にする。作業ツリー上の差分と一致するものだけを採用する。
+3. ユーザーの「今回の変更」「この変更」「今の変更」などの指示は、直前に会話で完了した一つの実装単位に結び付ける。複数の実装単位や複数リポジトリが候補になる場合は自動採用しない。
+4. 会話から抽出したパスをリポジトリルートからの相対パスへ正規化し、存在・変更状態・リポジトリ内であることを確認する。ディレクトリ指定は、その配下の変更済みパスだけに展開する。
+5. 引用された別会話、Skill本文の使用例、参考実装、単なる調査対象や言及だけのパスは、ユーザーが現在の依頼で明示的に対象化しない限り根拠にしない。
+6. 候補が一つの実装単位にまとまり、対象外の変更を含まず、現在の差分と矛盾しない場合だけ、確認なしで推定対象として扱う。それ以外は候補を示して停止する。
+
+推定対象を採用する場合も、ステージング前に対象パス、対象外として保持する変更、推定の根拠を内部で照合する。会話から推定できないことを理由に全変更へ拡張してはならない。
 
 ## 実行手順
 
@@ -194,6 +207,10 @@ restricted executionで `The token in default is invalid` などと表示され�
 
 ```text
 Use $git-add-commit-push. src/app.ts と tests/app.test.ts をコミットしてpushし、メッセージは「ログイン処理を更新」にしてください。
+```
+
+```text
+Use $git-add-commit-push. 今回の変更をコミットしてpushしてください。
 ```
 
 ```text

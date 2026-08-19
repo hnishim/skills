@@ -1,6 +1,6 @@
 ---
 name: implementation-loop
-description: Execute an explicitly approved implementation Plan through a bounded custom-agent loop. Use when the user invokes $implementation-loop or asks Codex to carry out an already approved Plan with the Luna implementer and Sol reviewer, including tests, review, fixes, and re-review. Do not use to create, negotiate, approve, or materially change a Plan, or when no identifiable approved Plan exists.
+description: Execute an explicitly approved implementation Plan through a bounded custom-agent loop. Use when the user invokes $implementation-loop or asks Codex to carry out an already approved Plan with the required implementer and reviewer custom agents, including tests, review, fixes, and re-review. Do not use to create, negotiate, approve, or materially change a Plan, or when no identifiable approved Plan exists.
 ---
 
 # Implementation Loop
@@ -17,6 +17,7 @@ Treat the approved Plan as the source of truth. Orchestrate the work from the pa
 
 ## Agent contract
 
+- The names `implementer` and `reviewer` are fixed custom-agent identifiers; their model, reasoning effort, and sandbox settings are defined in the custom agent TOML files.
 - Spawn the custom agent named `implementer` for all code and file changes. Do not substitute the parent agent or a generic worker merely because it is available.
 - After implementation, spawn the custom agent named `reviewer` for each review cycle. Do not ask the implementer to review its own work.
 - Run agents serially because the reviewer depends on the completed implementation and current diff.
