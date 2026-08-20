@@ -13,7 +13,7 @@ Treat the approved Plan as the source of truth. Establish an independently revie
 2. Confirm that the user explicitly approved that Plan or explicitly invoked this skill to execute that identifiable Plan after it was presented.
 3. Capture its scope, acceptance criteria, constraints, required validation, and user-owned changes that must remain untouched.
 4. Record the effective model and reasoning effort for the parent, `implementer`, and `reviewer` at loop start when the harness exposes them. The `implementer` custom-agent configuration must use reasoning effort `medium`; the reviewer remains independently configured. If a value is unavailable, record `unknown`; never infer historical settings from a later configuration snapshot.
-5. Before spawning an agent, derive an acceptance-and-risk matrix from the Plan. Map every acceptance criterion and non-functional risk to one or more automated checks, fault-injection checks, or explicit manual acceptance checks. Include boundary, malformed-input, dependency, cleanup, signal/interruption, security/privacy, documentation-consistency, and external-system risks where applicable.
+5. Before spawning an agent, derive an acceptance-and-risk matrix from the Plan. Map every acceptance criterion and non-functional risk to one or more artifact-appropriate automated checks, fault-injection checks, or explicit manual acceptance checks. Include boundary, malformed-input, dependency, cleanup, signal/interruption, security/privacy, documentation-consistency, and external-system risks where applicable.
 6. If the Plan is absent, ambiguous, still under discussion, materially incomplete, not testable as written, or leaves a product/security/failure-handling policy undecided, stop before spawning an agent. State what is missing and ask only for the decision needed to proceed.
 7. Do not create, expand, reinterpret, or approve the Plan inside this skill. A necessary material deviation requires user approval and ends the current loop.
 
@@ -37,14 +37,22 @@ Treat the approved Plan as the source of truth. Establish an independently revie
 - Before resuming an interrupted or previously stopped loop, close stale completed or interrupted agents from that loop and confirm that no reviewer remains active.
 - On any terminal or interrupted path, clean up all agents spawned by this loop before reporting the result.
 
+## Artifact-appropriate validation
+
+- Automate behavior that has a deterministic observable contract. Use fault injection for runtime failures, structural parsing for machine-readable formats, and compile or static checks for syntax and schema constraints.
+- Do not build a general natural-language meaning validator from regexes, keyword co-occurrence, or an expanding list of paraphrases. A test that tries to decide whether free-form prose is truthful is usually more fragile than the documentation it guards.
+- For free-form user documentation, automate only genuinely mechanical invariants such as required files or sections, valid links or commands, supported metadata, and removal of a specific known-stale statement. Assign semantic accuracy, completeness, and non-contradiction to an explicit manual acceptance check with a concrete rubric.
+- A Plan may explicitly define a canonical documentation block, schema, or fixed labels. In that case, exact structural or content validation is allowed because the format itself is part of the approved contract. Do not invent an exact wording contract merely to make prose testable.
+- A manual documentation check may remain pending during the tests-only gate. It must be completed against the implemented documentation before `PASS`. The test reviewer must not require an automated prose parser when the matrix provides a specific, reviewable manual check.
+
 ## Phase 1: tests-only gate
 
 1. Record the pre-existing worktree state and distinguish user-owned changes from changes authorized by the Plan. Attach the acceptance-and-risk matrix to the test-design packet.
 2. Spawn `implementer` with the approved Plan and require a tests-only change. It may add or edit tests, fixtures, fakes, and test-only helpers, but it must not add or edit production code, runtime configuration, user documentation, generated production artifacts, or external systems.
-3. Require the implementer to translate every acceptance criterion and risk-matrix row into observable checks, including success paths, boundary and malformed inputs, dependency and transport failures, cleanup failures, signal/interruption behavior, security/privacy behavior, documentation consistency, and non-mutating compile or static checks. Record any behavior that cannot be automated as a manual acceptance check instead of simulating success.
+3. Require the implementer to translate every acceptance criterion and risk-matrix row into artifact-appropriate observable checks, including success paths, boundary and malformed inputs, dependency and transport failures, cleanup failures, signal/interruption behavior, security/privacy behavior, documentation consistency, and non-mutating compile or static checks. Record any behavior that cannot be reliably automated as a manual acceptance check instead of simulating semantic understanding.
 4. Require the implementer to run the existing suite and the new tests separately. Existing tests must still pass. Classify each new result as `EXPECTED_FAIL`, `UNEXPECTED_FAIL`, or `PASS`, and explain why each expected failure demonstrates missing production behavior rather than a broken test. Tests do not need to pass before implementation when an `EXPECTED_FAIL` intentionally proves an absent behavior; they must pass before implementation review.
 5. If the implementer reports `BLOCKED`, stop. If it changes non-test files, return the boundary violation once and require it to remove only its own out-of-scope changes before review; if the violation remains, stop as `BLOCKED`. Do not begin implementation.
-6. Spawn one `reviewer` with the Plan, acceptance-and-risk matrix, tests-only diff, existing and new test results, manual acceptance checks, repository instructions, and pre-existing changes. The reviewer must inspect the tests independently and verify coverage of the matrix, not merely approve test syntax or source-string assertions. It must perform a complete review rather than stopping after the first finding.
+6. Spawn one `reviewer` with the Plan, acceptance-and-risk matrix, tests-only diff, existing and new test results, manual acceptance checks, repository instructions, and pre-existing changes. The reviewer must inspect the tests independently and verify coverage of the matrix, not merely approve test syntax or source-string assertions. It must accept an explicit manual row when semantic automation would be unreliable, while verifying that its rubric is concrete and will be completed before `PASS`. It must perform a complete review rather than stopping after the first finding.
 7. Parse the test reviewer's exact `status`:
    - `TESTS_APPROVED`: close the test reviewer and continue to Phase 2.
    - `TESTS_CHANGES_REQUIRED`: if fewer than two test-review verdicts have occurred, send only its actionable findings to the existing implementer, request tests-only corrections, rerun the affected tests, and return to step 6 using the same reviewer.
@@ -58,7 +66,7 @@ The tests-only gate is separate from the three implementation-review cycles. It 
 ## Phase 2: implementation and bounded review
 
 1. Send the approved Plan, locked test baseline, acceptance-and-risk matrix, manual acceptance checks, repository boundaries, and test-review result to the same `implementer`. Ask it to implement only the Plan, make the approved tests pass, add any non-weakening regression tests, and run all permitted validation.
-2. Require an implementer self-check before review: compare the full diff with the Plan and matrix, confirm the locked tests are unchanged, exercise each defined failure injection including cleanup and signal/interruption paths where applicable, run safe compile/static checks even when live E2E is prohibited, verify documentation matches actual persistence and failure behavior, and distinguish tested behavior from unverified live behavior.
+2. Require an implementer self-check before review: compare the full diff with the Plan and matrix, confirm the locked tests are unchanged, exercise each defined failure injection including cleanup and signal/interruption paths where applicable, run safe compile/static checks even when live E2E is prohibited, complete the documentation manual-check rubric against actual persistence and failure behavior, and distinguish tested behavior from unverified live behavior.
 3. If the implementer reports `BLOCKED`, a locked-test change, or a material Plan deviation, stop before implementation review and report it.
 4. Assemble the implementation review packet:
    - approved Plan, acceptance criteria, and acceptance-and-risk matrix;
@@ -67,7 +75,7 @@ The tests-only gate is separate from the three implementation-review cycles. It 
    - implementer report and exact test outcomes;
    - manual acceptance checks and what remains unverified;
    - repository conventions and applicable instructions.
-5. Spawn a fresh `reviewer` with the packet. Count this as one implementation-review cycle. Require a complete, evidence-backed review of the full diff, tests, fault-injection and signal paths, documentation consistency, manual checklist, and scope boundaries. The reviewer must return all material findings discoverable in that pass, rather than intentionally deferring them.
+5. Spawn a fresh `reviewer` with the packet. Count this as one implementation-review cycle. Require a complete, evidence-backed review of the full diff, tests, fault-injection and signal paths, documentation consistency, manual checklist, and scope boundaries. For free-form documentation, the reviewer must read the actual text against the manual rubric rather than demand a regex-based semantic test. The reviewer must return all material findings discoverable in that pass, rather than intentionally deferring them.
 6. Parse the reviewer's exact `status`:
    - `PASS`: verify that the reported tests, locked-test hashes, and worktree state still match the reviewed revision, then finish.
    - `CHANGES_REQUIRED`: if fewer than three implementation-review cycles have occurred, send only the approved Plan plus the matrix and reviewer's actionable findings to the existing implementer. Ask it to add a failing regression test for each reproducible defect before fixing it, preserve the locked baseline, rerun affected and full tests, and return a new structured report. Classify each finding as an acceptance gap, implementation defect, documentation mismatch, or unresolved policy decision. Then return to step 4.
@@ -89,9 +97,11 @@ Require the test reviewer to verify all of the following:
 - manual checks identify real launcher, GUI, permission, network, or external-system validation that static tests cannot prove;
 - the tests do not weaken, reinterpret, or expand the Plan.
 - the acceptance-and-risk matrix has no unexplained row; every manual check names the real launcher, permission, network, external-system, or signal behavior that static tests cannot prove;
-- cleanup and abnormal termination are tested or explicitly listed as manual/unverified, and documentation accurately states temporary persistence and residual risks.
+- cleanup and abnormal termination are tested or explicitly listed as manual/unverified; when documentation semantics are manual, the tests-only packet defines the rubric for temporary persistence and residual risks, and the implementation review later verifies the actual text.
+- free-form prose semantics are not approximated with brittle regex or keyword heuristics; documentation meaning is assigned to a concrete manual rubric unless the approved Plan defines a canonical machine-checkable format;
+- a pending manual check at the tests-only gate has an identified artifact, reviewer, assertions, and completion point before final `PASS`.
 
-Use `TESTS_CHANGES_REQUIRED` only for actionable gaps that could allow an incorrect implementation to pass. Return all material findings in one verdict. Use `PLAN_INCOMPLETE` when a test would require choosing a product, security, compatibility, or failure-handling policy not fixed by the Plan.
+Use `TESTS_CHANGES_REQUIRED` only for actionable gaps that could allow an incorrect implementation to pass. Do not use it merely because a free-form documentation row is manual rather than automated. Return all material findings in one verdict. Use `PLAN_INCOMPLETE` when a test would require choosing a product, security, compatibility, or failure-handling policy not fixed by the Plan.
 
 ## Review policy
 
@@ -114,7 +124,7 @@ Declare `PASS` only when all of the following hold:
 - every acceptance-and-risk matrix row is covered by a passing automated/fault-injection check or a completed manual acceptance check;
 - the locked acceptance tests are unchanged and pass, and added regression tests pass;
 - static checks and proportionate runtime checks pass, with failures classified and reported;
-- documentation matches actual persistence, cleanup, permissions, and residual-risk behavior;
+- documentation has been read against its manual acceptance rubric and matches actual persistence, cleanup, permissions, and residual-risk behavior;
 - no material reviewer findings remain and no high-severity risk is being silently deferred.
 
 ## Safety and stop conditions
