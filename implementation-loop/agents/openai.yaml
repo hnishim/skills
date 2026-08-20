@@ -1,7 +1,7 @@
 interface:
   display_name: "Implementation Loop"
-  short_description: "Run an approved plan through test-first implementation"
-  default_prompt: "Use $implementation-loop to create and review acceptance tests before implementing the approved plan through bounded review cycles."
+  short_description: "Run approved plans with risk-gated test-first review"
+  default_prompt: "Use $implementation-loop to map risks to tests or manual checks, review the test baseline, and implement the approved plan with bounded review cycles."
 
 policy:
   allow_implicit_invocation: false
