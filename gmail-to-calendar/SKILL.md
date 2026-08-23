@@ -1,66 +1,66 @@
 ---
 name: gmail-to-calendar
-description: Find a specified or implied Gmail message and create the corresponding Google Calendar event with exact source-derived details. Use for meeting invitations, appointments, webinars, classes, tickets, hotel stays, flights, trains, 新幹線, reservations, and requests such as「このメールをカレンダーに登録」「昨日予約したホテルを予定に追加」. Use connected Gmail and Google Calendar apps to identify the source email, extract and normalize event fields, preserve complete online-meeting URLs, check duplicates and conflicts, choose the intended calendar without guessing, preview when required, create the event, and verify the saved result.
+description: 指定または推定されたGmailメッセージを特定し、メールを根拠とする正確な情報で対応するGoogleカレンダー予定を作成する。会議招待、面談、ウェビナー、授業、チケット、ホテル宿泊、フライト、列車、新幹線、予約、および「このメールをカレンダーに登録」「昨日予約したホテルを予定に追加」などの依頼に使用する。接続されたGmailとGoogleカレンダーのアプリで元メールを特定し、予定項目を抽出・正規化し、オンライン会議の完全なURLを保持し、重複と競合を確認し、推測せずに対象カレンダーを選択し、必要に応じてプレビューを表示し、予定を作成して保存結果を検証する。
 ---
 
 # Gmail to Calendar
 
-Convert an email into a verified calendar event. Treat the email as the source of truth and use the connected Gmail and Google Calendar apps; do not substitute browser scraping when those apps are available.
+メールを検証済みのカレンダー予定へ変換する。メールを正本として扱い、接続されたGmailとGoogleカレンダーのアプリを使用する。これらのアプリが利用できる場合に、ブラウザーのスクレイピングで代替してはならない。
 
 ## Workflow
 
-1. Identify the source email.
-   - Fetch the message or thread directly when the user supplies it.
-   - Otherwise search with the user's date, sender, subject, organization, venue, or reservation clues. Resolve relative dates against the current date and time zone.
-   - Narrow broad results by sender, subject, and event identity. If several plausible messages remain, show concise candidates and ask which one to use.
-   - For a thread, inspect the latest authoritative message plus reschedules, cancellations, and corrections. Do not treat quoted obsolete details as current.
+1. 元メールを特定する
+   - ユーザーがメールを指定した場合は、そのメッセージまたはスレッドを直接取得する
+   - それ以外の場合は、ユーザーの指定した日付、送信者、件名、組織、会場、予約に関する手掛かりで検索する。相対的な日付は、現在の日付とタイムゾーンを基準に解釈する
+   - 検索結果が広すぎる場合は、送信者、件名、予定の同一性で絞り込む。利用候補が複数残る場合は、候補を簡潔に示し、どれを使用するか確認する
+   - スレッドの場合は、最新の正本性のあるメッセージに加え、日程変更、キャンセル、訂正を確認する。引用された古い情報を現在の情報として扱わない
 
-2. Extract the event.
-   - Extract title, start, end, time zone, location, complete online-meeting URL(s), organizer, attendees, notes, and source identifiers.
-   - Inspect the subject, plain/HTML body, headers, attachments exposed by the app, and structured reservation or invitation fields.
-   - Normalize relative or partial dates to absolute values only when surrounding evidence makes the result unambiguous.
-   - Preserve every complete Zoom, Microsoft Teams, Google Meet, Webex, or other join URL verbatim in the description. Do not shorten, rewrite, open, or omit it.
-   - Read [references/event-rules.md](references/event-rules.md) when shaping fields, handling travel/lodging, or resolving edge cases.
+2. 予定情報を抽出する。テスト
+   - タイトル、開始、終了、タイムゾーン、場所、オンライン会議の完全なURL、主催者、参加者、メモ、元メールの識別子を抽出する
+   - 件名、プレーンテキストまたはHTML本文、ヘッダー、アプリが公開している添付ファイル、構造化された予約情報または招待情報を確認する
+   - 周辺の証拠から結果が一意に定まる場合に限り、相対的または一部が省略された日付を絶対値へ正規化する
+   - Zoom、Microsoft Teams、Google Meet、Webexなど、すべての完全な参加URLを説明欄へ原文どおり保持する。短縮、書き換え、開くこと、省略をしてはならない
+   - 項目の整形、旅行・宿泊の扱い、エッジケースの解決では、[references/event-rules.md](references/event-rules.md) を読む
 
-3. Resolve ambiguity conservatively.
-   - Never invent a date, time, duration, time zone, location, attendee, or target calendar.
-   - Use stated start and end times exactly, including minute precision. Do not round or replace them with a customary duration.
-   - Ask for the smallest missing fact before any write when the date, start, end, time zone, event identity, or target calendar cannot be established reliably.
-   - Use an all-day event only when the source explicitly describes one or supplies dates without meaningful times and the event type clearly spans full dates.
-   - If the source contains multiple independent events, keep them separate and confirm which events to create.
+3. 曖昧さを保守的に解消する
+   - 日付、時刻、所要時間、タイムゾーン、場所、参加者、対象カレンダーを決して創作しない
+   - 分単位の精度を含め、記載された開始時刻と終了時刻をそのまま使用する。丸めたり、一般的な所要時間に置き換えたりしない
+   - 日付、開始、終了、タイムゾーン、予定の同一性、対象カレンダーを信頼できる形で確定できない場合は、書き込み前に不足している最小限の情報を確認する
+   - 終日予定は、元メールが明示的に終日予定として記載している場合、または意味のある時刻を伴わない日付を示し、予定の種類が明らかに日付全体にわたる場合に限り使用する
+   - 元メールに独立した予定が複数含まれる場合は、別々に扱い、どの予定を作成するか確認する
 
-4. Choose the target calendar.
-   - Honor an explicitly named calendar or established user instruction.
-   - Inspect available calendars when the target is not explicit. Select automatically only when exactly one writable calendar is a valid target or the app exposes an unambiguous user-designated default.
-   - If multiple writable calendars are plausible, ask the user. Do not infer the calendar from the sender, organizer, email account, or event topic alone.
+4. 対象カレンダーを選択する
+   - 明示されたカレンダー名または既存のユーザー指示に従う
+   - 対象が明示されていない場合は、利用可能なカレンダーを確認する。書き込み可能で有効な対象が1つだけである場合、またはアプリがユーザー指定の既定カレンダーを明確に示す場合に限り、自動選択する
+   - 書き込み可能な候補が複数ある場合は、ユーザーに確認する。送信者、主催者、メールアカウント、予定の話題だけからカレンダーを推測しない
 
-5. Check duplicates and conflicts before creation.
-   - Search the intended calendar over an explicit time range covering the proposed event, using its resolved time zone.
-   - Compare source identifiers first; then compare title, start/end, location, organizer, reservation number, and meeting URL.
-   - Treat a matching source identifier or a strong match on identity and time as a probable duplicate. Do not create another event without explicit user direction.
-   - Report overlapping events as conflicts. A conflict is not automatically a duplicate and does not by itself authorize changing either event.
+5. 作成前に重複と競合を確認する
+   - 解決済みのタイムゾーンを使用し、提案する予定を含む明示的な時間範囲で対象カレンダーを検索する
+   - まず元メールの識別子を比較し、その後にタイトル、開始・終了、場所、主催者、予約番号、会議URLを比較する
+   - 元メールの識別子が一致する場合、または同一性と時刻が強く一致する場合は、重複の可能性が高いと扱う。明示的なユーザー指示なしに別の予定を作成しない
+   - 重複する時間帯の予定は競合として報告する。競合は自動的に重複を意味せず、それだけでいずれかの予定を変更する権限を与えるものではない
 
-6. Build the proposed event.
-   - Use the source's formal event name or subject for meetings.
-   - Make travel titles scannable, such as `新幹線: 東京 → 新大阪`, while retaining the official service and reservation details in the description.
-   - Put the physical venue or address in `location`. Also retain online-meeting URLs in the description even if an app places one elsewhere.
-   - Record organizer and explicitly listed attendees. Do not add the organizer as an attendee merely because they sent the email.
-   - Avoid sending invitations unless the user's request and the source clearly establish that intent; if attendee handling could notify people, preview it and obtain any required approval.
-   - Do not add a new Google Meet link unless requested.
+6. 予定案を作成する
+   - 会議では、元メールの正式な予定名または件名を使用する
+   - 旅行のタイトルは、`新幹線: 東京 → 新大阪` のように一覧で把握しやすくし、正式なサービス名と予約情報は説明欄に保持する
+   - 実際の会場または住所を `location` に設定する。アプリが別の場所にURLを設定する場合でも、オンライン会議のURLは説明欄に保持する
+   - 主催者と明示的に記載された参加者を記録する。メールを送信したという理由だけで主催者を参加者に追加しない
+   - ユーザーの依頼と元メールから招待送信の意図が明確でない限り、招待を送信しない。参加者の処理によって通知が送られる可能性がある場合は、プレビューを表示し、必要な承認を得る
+   - 依頼がない限り、新しいGoogle Meetリンクを追加しない
 
-7. Preview and create.
-   - Immediately before a write, present the title, target calendar, start/end with time zone, all-day status, location, online-meeting URL(s), organizer, attendees, and relevant duplicate/conflict findings.
-   - If the app or permission policy requires confirmation, stop after the preview and request it. Otherwise, when the user has already clearly requested creation, proceed without an extra conversational confirmation.
-   - Create exactly the proposed event with the connected Google Calendar app.
+7. プレビューを表示して作成する
+   - 書き込みの直前に、タイトル、対象カレンダー、タイムゾーン付きの開始・終了、終日かどうか、場所、オンライン会議のURL、主催者、参加者、関連する重複・競合の確認結果を提示する
+   - アプリまたは権限ポリシーで確認が必要な場合は、プレビュー後に停止して確認を求める。それ以外の場合、ユーザーが作成を明確に依頼済みであれば、追加の会話上の確認なしに進める
+   - 接続されたGoogleカレンダーアプリで、提案した予定をそのまま1件だけ作成する
 
-8. Verify the saved event.
-   - Read the created event back from Google Calendar.
-   - Verify calendar, title, start, end, time zone, all-day status, location, description, complete meeting URLs, attendees, and conference-link state.
-   - Correct a material mismatch only when doing so is within the original request and does not create a new ambiguity; otherwise report it.
-   - Report completion only after successful read-back. Include the event link when the app returns one.
+8. 保存された予定を検証する
+   - 作成した予定をGoogleカレンダーから読み戻す
+   - カレンダー、タイトル、開始、終了、タイムゾーン、終日かどうか、場所、説明、完全な会議URL、参加者、会議リンクの状態を検証する
+   - 元の依頼の範囲内で、新たな曖昧さを生じさせずに修正できる重要な不一致だけを修正する。それ以外は報告する
+   - 読み戻しに成功した後に限り、完了を報告する。アプリが予定リンクを返した場合は含める
 
-## Failure handling
+## 失敗時の処理
 
-- If Gmail or Google Calendar is not connected or lacks required access, identify the missing connection or permission and stop before writing.
-- If a message is cancelled, superseded, or internally contradictory, do not create an event until the authoritative state is clear.
-- If creation times out or returns an indeterminate result, search/read the calendar before retrying so a retry cannot create a duplicate.
+- GmailまたはGoogleカレンダーが接続されていない、または必要なアクセス権がない場合は、不足している接続または権限を特定し、書き込み前に停止する
+- メッセージがキャンセル済み、差し替え済み、または内部的に矛盾している場合は、正本性のある状態が明確になるまで予定を作成しない
+- 作成がタイムアウトした場合や結果が不確定な場合は、再試行前にカレンダーを検索・読み込み、再試行による重複作成を防ぐ
