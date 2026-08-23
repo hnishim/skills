@@ -1,38 +1,38 @@
 ---
 name: implementation-loop
-description: Execute an explicitly approved implementation Plan through a test-first, bounded custom-agent loop. Use when the user invokes $implementation-loop or asks Codex to carry out an already approved Plan with implementer-authored tests, independent test review, implementation, review, fixes, and re-review. Do not use to create, negotiate, approve, or materially change a Plan, or when no identifiable approved Plan exists.
+description: 明示的に承認された実装Planを、テスト先行かつ範囲を限定したカスタムエージェントのループで実行する。ユーザーが$implementation-loopを呼び出した場合、またはimplementerが作成したテスト、独立したテストレビュー、実装、レビュー、修正、再レビューを含む承認済みPlanの実行をCodexに依頼した場合に使用する。Planの作成、交渉、承認、重要な変更には使用しない。また、識別可能な承認済みPlanがない場合にも使用しない。
 ---
 
 # Implementation Loop
 
-Treat the approved Plan as the source of truth. Establish an independently reviewed acceptance-test baseline before implementation, then orchestrate the bounded implementation loop from the parent thread.
+承認済みPlanを唯一の基準とする。実装前に、独立したレビューを受けた受け入れテストのベースラインを確立し、その後、親スレッドから範囲を限定した実装ループを調整する。
 
-## Entry gate
+## 開始ゲート
 
-1. Identify one concrete Plan in the current task or an explicitly referenced artifact.
-2. Confirm that the user explicitly approved that Plan or explicitly invoked this skill to execute that identifiable Plan after it was presented.
-3. Capture its scope, acceptance criteria, constraints, required validation, and user-owned changes that must remain untouched.
-4. Record the effective model and reasoning effort for the parent, `implementer`, and `reviewer` at loop start when the harness exposes them. The `implementer` custom-agent configuration must use reasoning effort `medium`; the reviewer remains independently configured. If a value is unavailable, record `unknown`; never infer historical settings from a later configuration snapshot.
-5. Before spawning an agent, calibrate the validation scope to the Plan's actual risk and then derive an acceptance-and-risk matrix. First separate the Plan into: (a) explicit or directly derivable user-visible acceptance criteria, (b) directly relevant failure or regression risks, (c) manual checks that require a real launcher, GUI, permission, or external system, and (d) non-applicable or out-of-scope concerns. Test only (a) and applicable items in (b); record (c) as concrete manual checks and record (d) with a brief reason. Do not turn every possible category into a test merely because it appears in this skill. Include boundary, malformed-input, dependency, cleanup, signal/interruption, security/privacy, documentation-consistency, and external-system risks only when the Plan or the affected artifact makes them plausible and material.
-6. If the Plan is absent, ambiguous, still under discussion, materially incomplete, not testable as written, or leaves a product/security/failure-handling policy undecided, stop before spawning an agent. State what is missing and ask only for the decision needed to proceed.
-7. Do not create, expand, reinterpret, or approve the Plan inside this skill. A necessary material deviation requires user approval and ends the current loop.
+1. 現在のタスク、または明示的に参照された成果物から、具体的なPlanを1つ特定する
+2. そのPlanがユーザーによって明示的に承認されていること、またはPlanの提示後に、ユーザーがその識別可能なPlanの実行を明示的に依頼していることを確認する
+3. Planの範囲、受け入れ基準、制約、必要な検証、変更せずに保持すべきユーザー所有の変更を記録する
+4. ハーネスが示す場合は、ループ開始時点で親、`implementer`、`reviewer` の実効モデルと推論設定を記録する。`implementer` のカスタムエージェント設定では推論設定を `medium` にし、reviewerは独立した設定のままにする。値を取得できない場合は `unknown` と記録し、後の設定スナップショットから過去の設定を推測しない
+5. エージェントを起動する前に、Planの実際のリスクに合わせて検証範囲を調整し、受け入れ・リスクマトリクスを作成する。まずPlanを、(a) 明示または直接導出できるユーザー向け受け入れ基準、(b) 直接関係する失敗または回帰リスク、(c) 実際のランチャー、GUI、権限、外部システムが必要な手動確認、(d) 該当しない、または範囲外の事項に分ける。(a)と(b)のうち該当するものだけをテストし、(c)は具体的な手動確認として、(d)は簡潔な理由とともに記録する。このスキルにカテゴリが列挙されているというだけで、すべてをテストにしない。境界値、形式不正入力、依存関係、クリーンアップ、シグナル・割り込み、セキュリティ・プライバシー、ドキュメント整合性、外部システムのリスクは、Planまたは対象成果物から見て妥当かつ重要な場合だけ含める
+6. Planがない、曖昧である、検討中である、実質的に不完全である、記述どおりにテストできない、または製品・セキュリティ・失敗処理の方針が未決定である場合は、エージェントを起動する前に停止する。不足しているものを示し、進行に必要な判断だけを求める
+7. このスキル内でPlanを作成、拡張、再解釈、承認しない。重要な逸脱が必要な場合はユーザーの承認を求め、現在のループを終了する
 
-## Scope calibration
+## 範囲の調整
 
-Before the acceptance-and-risk matrix, create a short validation budget for the approved Plan. This is a test-design decision, not a product decision, and must not add requirements to the Plan.
+受け入れ・リスクマトリクスを作成する前に、承認済みPlanの検証予算を短く定める。これはテスト設計上の判断であり、製品上の判断ではない。Planに要件を追加してはならない。
 
-- Classify the change as `small`, `stateful`, or `high-risk` based on data mutation, rollback needs, security/privacy impact, external-system effects, and user-visible compatibility.
-- If the Plan states a concrete outcome but omits testable acceptance wording, derive the smallest observable baseline that follows directly from that outcome and label it `derived baseline`. Do not add preferences, compatibility promises, failure policies, or implementation details. If even the minimum baseline requires a product or policy choice, stop with `PLAN_INCOMPLETE` and name that decision.
-- If the Plan lists many low-level requirements for one public behavior, collapse them into one behavioral acceptance scenario with related assertions. Preserve every materially distinct user-visible behavior, but do not create one acceptance criterion or test per command, helper, file, or assertion.
-- For a `small` change, prefer 2–4 focused automated scenarios plus the existing regression suite. For a `stateful` change, prefer 4–7 scenarios covering the main success path, one idempotence or preservation path, and the one most important failure/rollback path. Expand beyond that only when an explicit acceptance criterion or material risk cannot otherwise be covered.
-- For a `high-risk` change, add only the fault-injection, permission, cleanup, or manual checks needed by the stated risk. Do not simulate an entire production or GUI environment when one real manual acceptance check is more reliable.
-- Treat a scenario as a behavioral slice, not a single assertion. Group related assertions for one public operation instead of creating a test for every internal step.
-- Prefer public behavior and durable artifacts over implementation details. Do not require a particular helper function, temporary filename, internal command sequence, configuration key, or directory layout unless the approved Plan explicitly makes it part of the contract.
-- Use one representative boundary case per relevant boundary. Do not add malformed-input, signal/interruption, network, security, or cleanup scenarios when the Plan does not expose that behavior or the risk is immaterial; mark them `N/A` with a reason.
-- Set a default ceiling of seven new behavioral scenarios for ordinary local changes. Exceed it only with a written justification naming the explicit acceptance criterion or material risk that requires the extra scenario. This ceiling does not limit existing regression tests or a required manual check.
-- If the Plan itself is too broad to calibrate without choosing product, compatibility, security, or failure-handling policy, stop with `PLAN_INCOMPLETE`. Do not solve that ambiguity by expanding the test suite.
+- 変更を、データ変更、ロールバックの必要性、セキュリティ・プライバシーへの影響、外部システムへの影響、ユーザー向け互換性に基づき、`small`、`stateful`、`high-risk` のいずれかに分類する
+- Planが具体的な成果を示しているものの、テスト可能な受け入れ表現を欠いている場合は、その成果から直接導ける最小限の観測可能な基準を導出し、`derived baseline` と明記する。好み、互換性の約束、失敗方針、実装詳細を追加しない。最小限の基準にも製品または方針上の判断が必要なら、`PLAN_INCOMPLETE` として停止し、その判断を示す
+- Planに1つの公開動作について多数の低レベル要件がある場合は、関連するアサーションを含む1つの振る舞い単位の受け入れシナリオにまとめる。実質的に異なるユーザー向け動作はすべて保持するが、コマンド、ヘルパー、ファイル、アサーションごとに受け入れ基準やテストを1つずつ作らない
+- `small` な変更では、既存の回帰テストに加えて、2〜4個の焦点を絞った自動シナリオを優先する。`stateful` な変更では、主成功経路、冪等性または保持の経路、もっとも重要な失敗・ロールバック経路を含む4〜7個のシナリオを優先する。明示された受け入れ基準または重要なリスクを別の方法でカバーできない場合だけ、それを超えて拡張する
+- `high-risk` な変更では、記載されたリスクに必要な故障注入、権限、クリーンアップ、手動確認だけを追加する。1つの実際の手動確認の方が信頼できる場合に、本番やGUI環境全体をシミュレートしない
+- シナリオは単一のアサーションではなく、振る舞いの一単位として扱う。内部処理ごとにテストを作らず、1つの公開操作に関係するアサーションをまとめる
+- 実装詳細ではなく、公開動作と永続的な成果物を優先する。承認済みPlanが契約の一部として明示していない限り、特定のヘルパー関数、一時ファイル名、内部コマンド列、設定キー、ディレクトリ構成を要求しない
+- 関係する境界ごとに代表的な境界値を1つ使う。Planがその動作を公開していない、またはリスクが重要でない場合は、形式不正入力、シグナル・割り込み、ネットワーク、セキュリティ、クリーンアップのシナリオを追加せず、理由を付けて `N/A` と記録する
+- 通常のローカル変更では、新しい振る舞いシナリオの上限を原則7個とする。明示された受け入れ基準または重要なリスクにより追加が必要な場合だけ、超過理由を記載する。この上限は既存の回帰テストや必須の手動確認を制限しない
+- Planが広すぎて、製品、互換性、セキュリティ、失敗処理の方針を選ばなければ調整できない場合は、`PLAN_INCOMPLETE` として停止する。テストスイートを拡張して曖昧さを解決してはならない
 
-The scope-calibration record sent to both agents must contain:
+両エージェントに送る範囲調整の記録には、次を含める。
 
 ```text
 change_class: small | stateful | high-risk
@@ -43,156 +43,156 @@ scenario_count: N
 justification_for_expansion: [only when N exceeds the default ceiling]
 ```
 
-## Agent contract
+## エージェント契約
 
-- The names `implementer` and `reviewer` are fixed custom-agent identifiers; their model, reasoning effort, and sandbox settings are defined in the custom agent TOML files. Keep `implementer` at reasoning effort `medium` unless the user explicitly changes that policy.
-- Spawn the custom agent named `implementer` for all test, fixture, implementation, and documentation changes. Do not substitute the parent agent or a generic worker merely because it is available.
-- Use the custom agent named `reviewer` first to review the tests-only change, then for implementation review. Do not ask the implementer to approve its own tests or implementation.
-- Run agents serially because each reviewer depends on a completed tests-only or implementation diff.
-- Give each agent the approved Plan, repository/worktree boundaries, relevant AGENTS.md instructions, and the previous agent's structured result. Do not send unrelated conversation history.
-- Reuse the same implementer thread across test design, implementation, and fixes when possible. Reuse the test reviewer only within the tests-only gate; use a fresh reviewer for each post-implementation review cycle.
-- Wait for each required result before continuing. Do not claim completion while an agent is still running.
+- `implementer` と `reviewer` という名前は固定のカスタムエージェント識別子であり、モデル、推論設定、サンドボックス設定はカスタムエージェントのTOMLファイルで定義する。ユーザーが明示的に変更しない限り、`implementer` の推論設定は `medium` に保つ
+- テスト、fixture、実装、ドキュメントの変更には、すべてカスタムエージェント `implementer` を起動する。利用可能だからという理由だけで、親エージェントや汎用ワーカーに置き換えない
+- テストのみの変更を最初にレビューし、その後に実装をレビューするため、カスタムエージェント `reviewer` を使う。Implementer自身に自分のテストや実装を承認させない
+- 各reviewerは完了したテストのみの差分または実装差分に依存するため、エージェントは直列に実行する
+- 各エージェントには、承認済みPlan、リポジトリとワークツリーの境界、関連する `AGENTS.md` の指示、直前のエージェントの構造化された結果を渡す。無関係な会話履歴は渡さない
+- 可能な限り、テスト設計、実装、修正を通じて同じimplementerスレッドを再利用する。テストのみのゲート内ではtest reviewerを再利用し、実装レビューサイクルごとに新しいreviewerを起動する
+- 必須の結果を待ってから次に進む。エージェントの実行中に完了を宣言しない
 
-## Agent lifecycle and cleanup
+## エージェントのライフサイクルとクリーンアップ
 
-- Keep at most one implementer and one reviewer active at a time.
-- Reuse the same implementer thread throughout a Plan unless it is blocked, unavailable, or its context is no longer reliable.
-- Reuse one reviewer throughout the test-design gate so it can verify its own findings consistently. After closing that reviewer, start one fresh reviewer per implementation-review cycle.
-- Close the test reviewer when the tests-only gate reaches a terminal status. Close each implementation reviewer immediately after its verdict.
-- Retain the implementer through the tests-only gate and implementation loop. Close it after `PASS`, `BLOCKED`, `TEST_DESIGN_BLOCKED`, `REVIEW_LIMIT_REACHED`, or when the loop is interrupted.
-- Before resuming an interrupted or previously stopped loop, close stale completed or interrupted agents from that loop and confirm that no reviewer remains active.
-- On any terminal or interrupted path, clean up all agents spawned by this loop before reporting the result.
+- 起動中のimplementerとreviewerは、それぞれ最大1つに保つ
+- ブロックされた、利用できない、またはコンテキストの信頼性が失われた場合を除き、Plan全体を通じて同じimplementerスレッドを再利用する
+- テスト設計ゲートでは、reviewerが自分の指摘を一貫して確認できるよう、1つのreviewerを再利用する。Reviewerを終了した後は、実装レビューサイクルごとに新しいreviewerを起動する
+- テストのみのゲートが終了状態になったらtest reviewerを終了する。各実装reviewerは判定直後に終了する
+- テストのみのゲートと実装ループの間はimplementerを保持し、`PASS`、`BLOCKED`、`TEST_DESIGN_BLOCKED`、`REVIEW_LIMIT_REACHED`、またはループ中断後に終了する
+- 中断したループ、または一度停止したループを再開する前に、そのループで完了または中断した古いエージェントを終了し、reviewerが残っていないことを確認する
+- 終了または中断した場合は、報告前にこのループで起動したすべてのエージェントをクリーンアップする
 
-## Artifact-appropriate validation
+## 成果物に適した検証
 
-- Automate behavior that has a deterministic observable contract. Use fault injection for runtime failures, structural parsing for machine-readable formats, and compile or static checks for syntax and schema constraints.
-- Do not build a general natural-language meaning validator from regexes, keyword co-occurrence, or an expanding list of paraphrases. A test that tries to decide whether free-form prose is truthful is usually more fragile than the documentation it guards.
-- For free-form user documentation, automate only genuinely mechanical invariants such as required files or sections, valid links or commands, supported metadata, and removal of a specific known-stale statement. Assign semantic accuracy, completeness, and non-contradiction to an explicit manual acceptance check with a concrete rubric.
-- A Plan may explicitly define a canonical documentation block, schema, or fixed labels. In that case, exact structural or content validation is allowed because the format itself is part of the approved contract. Do not invent an exact wording contract merely to make prose testable.
-- A manual documentation check may remain pending during the tests-only gate. It must be completed against the implemented documentation before `PASS`. The test reviewer must not require an automated prose parser when the matrix provides a specific, reviewable manual check.
+- 決定論的に観測できる契約を持つ動作を自動化する。実行時の失敗には故障注入、機械可読形式には構造解析、構文とスキーマ制約にはコンパイルまたは静的チェックを使う
+- 正規表現、キーワードの共起、増え続ける言い換え一覧から、一般的な自然言語の意味検証器を作らない。自由記述の正しさを判定しようとするテストは、保護対象のドキュメントより脆弱になることが多い
+- 自由記述のユーザードキュメントでは、必須ファイルやセクション、リンクやコマンドの妥当性、サポートされるメタデータ、特定の古い記述の削除など、本当に機械的な不変条件だけを自動化する。意味の正確さ、完全性、矛盾のなさは、具体的な基準を持つ明示的な手動確認に割り当てる
+- Planが正規のドキュメントブロック、スキーマ、固定ラベルを明示的に定義している場合は、その形式自体が承認済みの契約なので、厳密な構造または内容の検証を認める。テスト可能な形にする際、正確な文言の契約を新たに作らない
+- テストのみのゲートでは、ドキュメントの手動確認を保留してもよい。`PASS` の前に実装済みドキュメントに対して完了させること。マトリクスに具体的でレビュー可能な手動確認がある場合、test reviewerは自動化された文書パーサーを要求してはならない
 
-## Phase 1: tests-only gate
+## フェーズ1：テストのみのゲート
 
-1. Record the pre-existing worktree state and distinguish user-owned changes from changes authorized by the Plan. Attach the acceptance-and-risk matrix to the test-design packet.
-2. Spawn `implementer` with the approved Plan and require a tests-only change. It may add or edit tests, fixtures, fakes, and test-only helpers, but it must not add or edit production code, runtime configuration, user documentation, generated production artifacts, or external systems.
-3. Require the implementer to translate every explicit acceptance criterion and every applicable risk-matrix row into artifact-appropriate observable checks. Follow the locked scope-calibration record: cover success paths and only the relevant boundary, malformed-input, dependency, cleanup, signal/interruption, security/privacy, documentation-consistency, and external-system checks. Record behavior that cannot be reliably automated as a concrete manual acceptance check instead of simulating semantic understanding. Do not add scenarios solely to satisfy a generic category in this skill.
-4. Require the implementer to run the existing suite and the new tests separately. Existing tests must still pass. Classify each new result as `EXPECTED_FAIL`, `UNEXPECTED_FAIL`, or `PASS`, and explain why each expected failure demonstrates missing production behavior rather than a broken test. Tests do not need to pass before implementation when an `EXPECTED_FAIL` intentionally proves an absent behavior; they must pass before implementation review.
-5. If the implementer reports `BLOCKED`, stop. If it changes non-test files, return the boundary violation once and require it to remove only its own out-of-scope changes before review; if the violation remains, stop as `BLOCKED`. Do not begin implementation.
-6. Spawn one `reviewer` with `review_phase: tests-only`, the Plan, acceptance-and-risk matrix, tests-only diff, existing and new test results, manual acceptance checks, repository instructions, and pre-existing changes. The reviewer must inspect the tests independently and verify coverage of the matrix, not merely approve test syntax or source-string assertions. It must accept an explicit manual row when semantic automation would be unreliable, while verifying that its rubric is concrete and will be completed before `PASS`. It must perform a complete review rather than stopping after the first finding.
-7. Parse the test reviewer's exact `status`:
-   - `TESTS_APPROVED`: close the test reviewer and continue to Phase 2.
-   - `TESTS_CHANGES_REQUIRED`: if fewer than two test-review verdicts have occurred, send only its actionable findings to the existing implementer, request tests-only corrections, rerun the affected tests, and return to step 6 using the same reviewer.
-   - `PLAN_INCOMPLETE`: close all loop agents, stop as `BLOCKED`, and report the exact missing decision; neither agent may choose the requirement.
-   - Missing, malformed, or contradictory status: ask the same reviewer once to restate the result. If it remains invalid, stop and report the protocol failure.
-8. After a second `TESTS_CHANGES_REQUIRED`, stop as `TEST_DESIGN_BLOCKED` without production changes.
-9. On `TESTS_APPROVED`, record the approved test diff, changed-file list, acceptance-and-risk matrix, manual checklist, and content hashes as the locked acceptance baseline. Later implementation may add non-weakening tests but must not delete, weaken, skip, or modify an approved test. If an approved test is proven invalid, stop as `BLOCKED` and request a new test-design gate instead of changing it inside the implementation loop.
+1. 既存のワークツリー状態を記録し、ユーザー所有の変更とPlanで許可された変更を区別する。受け入れ・リスクマトリクスをテスト設計用パケットに添付する
+2. 承認済みPlanを `implementer` に渡し、テストのみの変更を要求する。テスト、fixture、fake、テスト専用ヘルパーは追加または編集してよいが、本番コード、実行時設定、ユーザードキュメント、生成された本番成果物、外部システムを追加または編集してはならない
+3. 明示された各受け入れ基準と、該当する各リスクマトリクス行を、成果物に適した観測可能なチェックへ変換するようimplementerに求める。固定した範囲調整の記録に従い、成功経路と関係する境界値、形式不正入力、依存関係、クリーンアップ、シグナル・割り込み、セキュリティ・プライバシー、ドキュメント整合性、外部システムのチェックだけを対象にする。信頼性をもって自動化できない動作は、意味をシミュレートせず、具体的な手動確認として記録する。このスキルの一般カテゴリを満たすだけのシナリオは追加しない
+4. 既存のテストスイートと新しいテストを分けて実行するようimplementerに求める。既存テストは引き続き成功しなければならない。新しいテストの各結果を `EXPECTED_FAIL`、`UNEXPECTED_FAIL`、`PASS` に分類し、各期待される失敗が壊れたテストではなく、欠けている本番動作を示す理由を説明する。`EXPECTED_FAIL` が意図的に未実装の動作を示す場合、実装前にテストが成功する必要はないが、実装レビュー前には成功していなければならない
+5. Implementerが `BLOCKED` を報告した場合は停止する。テスト以外のファイルを変更した場合は、範囲違反を1回だけ返し、自身が作った範囲外の変更だけを削除してからレビューするよう求める。違反が残る場合は `BLOCKED` として停止する。実装を開始しない
+6. `review_phase: tests-only`、Plan、受け入れ・リスクマトリクス、テストのみの差分、既存と新規のテスト結果、手動確認、リポジトリの指示、既存の変更を含むパケットを使ってreviewerを1つ起動する。Reviewerはテストを独立して確認し、テスト構文やソース文字列のアサーションを承認するだけでなく、マトリクスの網羅性を検証する。意味の自動化を信頼できない場合は明示的な手動行を認めるが、`PASS` までに完了する具体的な基準であることを確認する。最初の指摘で止めず、十分なレビューを実施する
+7. Test reviewerの正確な `status` を解析する
+   - `TESTS_APPROVED`：test reviewerを終了し、フェーズ2へ進む
+   - `TESTS_CHANGES_REQUIRED`：テストレビューの判定が2回未満なら、実行可能な指摘だけを既存のimplementerに送り、テストのみの修正を求め、影響を受けるテストを再実行して、同じreviewerで手順6に戻る
+   - `PLAN_INCOMPLETE`：すべてのループエージェントを終了し、`BLOCKED` として停止して不足している判断を正確に報告する。どちらのエージェントも要件を選択してはならない
+   - Statusがない、不正、または矛盾している場合：同じreviewerに1回だけ結果の言い直しを求める。それでも不正なら、プロトコル違反として停止して報告する
+8. `TESTS_CHANGES_REQUIRED` が2回目に発生したら、本番変更なしで `TEST_DESIGN_BLOCKED` として停止する
+9. `TESTS_APPROVED` になったら、承認済みテスト差分、変更ファイル一覧、受け入れ・リスクマトリクス、手動チェックリスト、内容ハッシュを固定受け入れベースラインとして記録する。その後の実装では弱体化しないテストを追加できるが、承認済みテストを削除、弱体化、スキップ、変更してはならない。承認済みテストが無効だと証明された場合は `BLOCKED` として停止し、実装ループ内で変更せず、新しいテスト設計ゲートを求める
 
-The tests-only gate is separate from the three implementation-review cycles. It has at most two reviewer verdicts and must complete before any production implementation begins.
+テストのみのゲートは3回の実装レビューサイクルとは別である。Reviewerの判定は最大2回であり、本番実装を始める前に完了しなければならない。
 
-## Phase 2: implementation and bounded review
+## フェーズ2：実装と範囲を限定したレビュー
 
-1. Send the approved Plan, locked test baseline, acceptance-and-risk matrix, manual acceptance checks, repository boundaries, and test-review result to the same `implementer`. Ask it to implement only the Plan, make the approved tests pass, add any non-weakening regression tests, and run all permitted validation.
-2. Require an implementer self-check before review: compare the full diff with the Plan and matrix, confirm the locked tests are unchanged, exercise each defined failure injection including cleanup and signal/interruption paths where applicable, run safe compile/static checks even when live E2E is prohibited, complete the documentation manual-check rubric against actual persistence and failure behavior, and distinguish tested behavior from unverified live behavior.
-3. If the implementer reports `BLOCKED`, a locked-test change, or a material Plan deviation, stop before implementation review and report it.
-4. Assemble the implementation review packet with `review_phase: implementation`:
-   - approved Plan, acceptance criteria, and acceptance-and-risk matrix;
-   - locked test baseline and hash comparison;
-   - current diff and changed-file list, including relevant pre-existing changes;
-   - implementer report and exact test outcomes;
-   - manual acceptance checks and what remains unverified;
-   - repository conventions and applicable instructions.
-5. Spawn a fresh `reviewer` with the packet. Count this as one implementation-review cycle. Require a complete, evidence-backed review of the full diff, tests, fault-injection and signal paths, documentation consistency, manual checklist, and scope boundaries. For free-form documentation, the reviewer must read the actual text against the manual rubric rather than demand a regex-based semantic test. The reviewer must return all material findings discoverable in that pass, rather than intentionally deferring them.
-6. Parse the reviewer's exact `status`:
-   - `PASS`: verify that the reported tests, locked-test hashes, and worktree state still match the reviewed revision, then finish.
-   - `CHANGES_REQUIRED`: if fewer than three implementation-review cycles have occurred, send only the approved Plan plus the matrix and reviewer's actionable findings to the existing implementer. Ask it to add a failing regression test for each reproducible defect before fixing it, preserve the locked baseline, rerun affected and full tests, and return a new structured report. Classify each finding as an acceptance gap, implementation defect, documentation mismatch, or unresolved policy decision. Then return to step 4.
-   - Missing, malformed, or contradictory status: ask the same reviewer once to restate the result. If it remains invalid, stop and report the protocol failure.
-7. After a third `CHANGES_REQUIRED`, stop without further edits as `REVIEW_LIMIT_REACHED`. This is an incomplete, non-accepting state, not a successful completion. Escalate the remaining findings, risk classification, manual checklist, and test state to the user. Do not mark the Plan complete or defer a high-severity correctness, security, privacy, or data-loss finding without explicit user risk acceptance.
+1. 承認済みPlan、固定テストベースライン、受け入れ・リスクマトリクス、手動確認、リポジトリの境界、テストレビュー結果を同じ `implementer` に送る。Planだけを実装し、承認済みテストを成功させ、弱体化しない回帰テストを追加し、許可された検証をすべて実行するよう求める
+2. レビュー前にimplementer自身で確認するよう求める。差分全体をPlanとマトリクスに照合し、固定テストが変更されていないことを確認し、定義された各故障注入を、該当する場合はクリーンアップとシグナル・割り込み経路を含めて実行し、実際のエンドツーエンド検証が禁止されていても安全なコンパイル・静的チェックを実行し、実際の永続化と失敗動作に対するドキュメントの手動確認基準を完了し、テスト済みの動作と未検証の実動作を区別する
+3. Implementerが `BLOCKED`、固定テストの変更、またはPlanからの重大な逸脱を報告した場合は、実装レビューの前に停止して報告する
+4. `review_phase: implementation` を付けて実装レビュー用パケットを作成する
+   - 承認済みPlan、受け入れ基準、受け入れ・リスクマトリクス
+   - 固定テストベースラインとハッシュ比較
+   - 関係する既存変更を含む現在の差分と変更ファイル一覧
+   - Implementerの報告と正確なテスト結果
+   - 手動確認と未検証の事項
+   - リポジトリの規約と適用される指示
+5. パケットを使って新しいreviewerを起動する。これを実装レビューの1サイクルとして数える。差分全体、テスト、故障注入とシグナル経路、ドキュメント整合性、手動チェックリスト、範囲境界を、根拠に基づいて十分にレビューするよう求める。自由記述ドキュメントでは、正規表現ベースの意味テストを要求せず、手動確認基準に照らして実際の文章を読むよう求める。Reviewerはその回で発見できるすべての重要な指摘を返し、意図的に後回しにしてはならない
+6. Reviewerの正確な `status` を解析する
+   - `PASS`：報告されたテスト、固定テストのハッシュ、ワークツリー状態がレビュー対象のリビジョンと一致することを確認して終了する
+   - `CHANGES_REQUIRED`：実装レビューサイクルが3回未満なら、承認済みPlan、マトリクス、reviewerの実行可能な指摘だけを既存のimplementerに送る。再現可能な欠陥ごとに、修正前に失敗する回帰テストを追加し、固定ベースラインを保持し、影響を受けるテストと全テストを再実行して、新しい構造化された報告を返すよう求める。各指摘を受け入れ不足、実装欠陥、ドキュメント不一致、未解決の方針判断に分類し、手順4に戻る
+   - Statusがない、不正、または矛盾している場合：同じreviewerに1回だけ結果の言い直しを求める。それでも不正なら、プロトコル違反として停止して報告する
+7. `CHANGES_REQUIRED` が3回目に発生したら、それ以上編集せず `REVIEW_LIMIT_REACHED` として停止する。これは不完全で受け入れられていない状態であり、成功ではない。残りの指摘、リスク分類、手動チェックリスト、テスト状態をユーザーに報告する。ユーザーが明示的にリスクを受け入れない限り、高重要度の正確性、セキュリティ、プライバシー、データ損失のリスクを黙って先送りしたり、Planを完了扱いにしたりしない
 
-One implementation-review cycle means one completed post-implementation reviewer verdict. The initial implementation review is cycle 1, so at most two automatic fix rounds follow it before the cycle-3 verdict.
+実装レビューの1サイクルとは、実装後のreviewer判定が1回完了することである。最初の実装レビューがサイクル1なので、自動修正ラウンドは最大2回、その後に続く。
 
-## Test review policy
+## テストレビュー方針
 
-Require the test reviewer to verify all of the following:
+Test reviewerには、次のすべてを確認させる。
 
-- every Plan acceptance criterion maps to an observable automated or manual check;
-- tests specify public behavior and externally visible side effects without unnecessarily fixing an internal design;
-- success, empty/boundary input, malformed data, dependency failure, cleanup failure, and security/privacy paths are covered where applicable;
-- fakes and mocks preserve the relevant contract and can inject each required failure independently;
-- new tests fail for the intended missing behavior, not because of syntax errors, invalid fixtures, missing test dependencies, or unrelated environment failures;
-- existing behavior and unrelated user changes remain intact;
-- manual checks identify real launcher, GUI, permission, network, or external-system validation that static tests cannot prove;
-- the tests do not weaken, reinterpret, or expand the Plan.
-- the tests stay within the approved scope-calibration record; over-testing, implementation-specific assertions, and tests for out-of-scope behavior are actionable design defects, not quality improvements;
-- the acceptance-and-risk matrix has no unexplained row; every manual check names the real launcher, permission, network, external-system, or signal behavior that static tests cannot prove;
-- cleanup and abnormal termination are tested or explicitly listed as manual/unverified; when documentation semantics are manual, the tests-only packet defines the rubric for temporary persistence and residual risks, and the implementation review later verifies the actual text.
-- free-form prose semantics are not approximated with brittle regex or keyword heuristics; documentation meaning is assigned to a concrete manual rubric unless the approved Plan defines a canonical machine-checkable format;
-- a pending manual check at the tests-only gate has an identified artifact, reviewer, assertions, and completion point before final `PASS`.
+- Planの各受け入れ基準が、観測可能な自動または手動チェックに対応している
+- テストが、内部設計を不必要に固定せず、公開動作と外部から見える副作用を指定している
+- 成功、空入力・境界値、形式不正データ、依存関係の失敗、クリーンアップの失敗、セキュリティ・プライバシーの経路が、該当する場合に網羅されている
+- Fakeとmockが関係する契約を保持し、必要な各失敗を個別に注入できる
+- 新しいテストが、構文エラー、fixtureの不正、テスト依存関係の不足、無関係な環境エラーではなく、意図した未実装動作に対して失敗する
+- 既存の動作と無関係なユーザー変更が保持されている
+- 手動確認が、静的テストで証明できない実際のランチャー、GUI、権限、ネットワーク、外部システムの検証を特定している
+- テストがPlanを弱め、再解釈、拡張していない
+- テストが承認済みの範囲調整記録内に収まっている。過剰なテスト、実装固有のアサーション、範囲外の動作に対するテストは、品質向上ではなく、対処すべき設計上の欠陥である
+- 受け入れ・リスクマトリクスに説明のない行がなく、各手動確認が静的テストで証明できない実際のランチャー、GUI、権限、ネットワーク、外部システム、シグナルの動作を示している
+- クリーンアップと異常終了がテストされているか、手動確認または未検証として明示されている。ドキュメントの意味を手動で確認する場合は、テストのみのパケットに一時的な永続化と残存リスクの基準を定義し、実装レビューで実際の文章を確認する
+- 自由記述の意味を脆い正規表現やキーワードヒューリスティックで近似していない。承認済みPlanが機械的に検証できる形式を定義していない限り、ドキュメントの意味は具体的な手動確認基準に割り当てる
+- テストのみのゲートで保留中の手動確認には、`PASS` までに完了する対象成果物、担当reviewer、アサーション、完了時点が定義されている
 
-Use `TESTS_CHANGES_REQUIRED` only for actionable gaps that could allow an incorrect implementation to pass. Do not use it merely because a free-form documentation row is manual rather than automated. Return all material findings in one verdict. Use `PLAN_INCOMPLETE` when a test would require choosing a product, security, compatibility, or failure-handling policy not fixed by the Plan.
+誤った実装が通過する可能性を残す実行可能な不足に限り、`TESTS_CHANGES_REQUIRED` を使う。自由記述のドキュメント項目が自動化ではなく手動確認になっていることだけを理由に使わない。重要な指摘はすべて1つの判定で返す。テストにPlanで定められていない製品、セキュリティ、互換性、失敗処理の方針を選ばせる必要がある場合は、`PLAN_INCOMPLETE` を使う。
 
-## Review policy
+## レビュー方針
 
-Require each implementation reviewer to evaluate only material, evidence-backed issues in these categories:
+各実装reviewerには、次のカテゴリに限り、重要で根拠のある問題を評価させる。
 
-- correctness and edge cases;
-- conformance with the approved Plan and acceptance criteria;
-- scope creep or unrelated changes;
-- regressions and compatibility;
-- test adequacy and observed test failures;
-- security, privacy, error handling, and robustness;
-- consistency with repository conventions and applicable instructions.
+- 正確性とエッジケース
+- 承認済みPlanと受け入れ基準への適合
+- 範囲の拡大または無関係な変更
+- 回帰と互換性
+- テストの十分性と観測されたテスト失敗
+- セキュリティ、プライバシー、エラー処理、堅牢性
+- リポジトリの規約と適用される指示との整合性
 
-Use `CHANGES_REQUIRED` only when at least one actionable finding blocks safe acceptance of the approved Plan. Suggestions, preferences, and speculative improvements belong in `non_blocking_notes` and must not prevent `PASS`. Every blocking finding must identify category, severity, evidence with a file/symbol or test reference, impact, and a concrete required change. Return all material findings in one verdict; do not intentionally defer discoverable issues to later cycles. Do not accept findings that expand the approved Plan unless they address a direct regression, security issue, or unmet acceptance criterion.
+承認済みPlanを安全に受け入れることを妨げる実行可能な指摘が少なくとも1つある場合に限り、`CHANGES_REQUIRED` を使う。提案、好み、推測的な改善は `non_blocking_notes` に置き、`PASS` を妨げてはならない。すべてのブロッキング指摘には、カテゴリ、重要度、ファイル・シンボルまたはテストへの参照を含む根拠、影響、具体的な必要修正を示す。重要な指摘はすべて1つの判定で返し、発見可能な問題を意図的に後回しにしない。直接の回帰、セキュリティ問題、または未達の受け入れ基準に対応する場合を除き、承認済みPlanを拡張する指摘は受け入れない。
 
-## Definition of done
+## 完了条件
 
-Declare `PASS` only when all of the following hold:
+次のすべてを満たした場合に限り、`PASS` を宣言する。
 
-- every acceptance-and-risk matrix row is covered by a passing automated/fault-injection check or a completed manual acceptance check;
-- the locked acceptance tests are unchanged and pass, and added regression tests pass;
-- static checks and proportionate runtime checks pass, with failures classified and reported;
-- documentation has been read against its manual acceptance rubric and matches actual persistence, cleanup, permissions, and residual-risk behavior;
-- no material reviewer findings remain and no high-severity risk is being silently deferred.
+- 受け入れ・リスクマトリクスのすべての行が、成功した自動または故障注入チェック、もしくは完了した手動確認でカバーされている
+- 固定された受け入れテストが変更されずに成功し、追加した回帰テストも成功している
+- 静的チェックと、リスクに見合った実行時チェックが成功し、失敗が分類・報告されている
+- ドキュメントを手動確認基準に照らして読み、実際の永続化、クリーンアップ、権限、残存リスクの動作と一致している
+- 重要なreviewer指摘が残っておらず、高重要度のリスクが黙って先送りされていない
 
-## Safety and stop conditions
+## 安全策と停止条件
 
-- Preserve unrelated and pre-existing user changes. Never reset, discard, overwrite, stage, commit, or publish them unless the Plan explicitly requires it.
-- Do not commit, push, open a pull request, write to external systems, or perform destructive actions unless the approved Plan explicitly authorizes them.
-- During the tests-only gate, do not permit production or documentation changes. During implementation, do not permit changes that weaken the locked acceptance baseline.
-- Stop for missing authority, destructive work, external side effects, persistent test-environment failure, conflicting instructions, or a material Plan deviation.
-- If review findings conflict with the approved Plan, do not choose silently. Report the conflict to the user.
+- 無関係な既存変更と事前に存在したユーザー変更を保持する。Planが明示的に要求しない限り、それらをリセット、破棄、上書き、ステージ、コミット、公開しない
+- 承認済みPlanが明示的に許可しない限り、コミット、プッシュ、プルリクエストの作成、外部システムへの書き込み、破壊的操作をしない
+- テストのみのゲートでは、本番コードやドキュメントの変更を許可しない。実装中は、固定された受け入れベースラインを弱める変更を許可しない
+- 権限不足、破壊的操作、外部副作用、継続するテスト環境の失敗、指示の衝突、Planからの重大な逸脱があれば停止する
+- レビュー指摘が承認済みPlanと衝突する場合は、黙って選択せず、ユーザーに報告する
 
-## Non-pass analysis and recommendation
+## 非 `PASS` 時の分析と推奨
 
-When the loop reaches any terminal state other than `PASS`, perform this analysis after all loop agents have been closed and before reporting the result. This applies to `BLOCKED`, `TEST_DESIGN_BLOCKED`, `REVIEW_LIMIT_REACHED`, protocol failure, and an interrupted loop.
+ループが `PASS` 以外の終了状態になった場合は、すべてのループエージェントを終了した後、結果を報告する前にこの分析を実施する。対象は `BLOCKED`、`TEST_DESIGN_BLOCKED`、`REVIEW_LIMIT_REACHED`、プロトコル違反、ループ中断である。
 
-Separate observed facts from interpretation. Use the approved Plan, acceptance-and-risk matrix, agent verdicts, test output, current diff, and manual-check state as evidence. Do not infer that the product is broken merely because a process gate failed, and do not infer that the product is safe merely because tests passed.
+観測された事実と解釈を分ける。承認済みPlan、受け入れ・リスクマトリクス、エージェントの判定、テスト出力、現在の差分、手動確認の状態を根拠として使う。プロセスゲートに失敗しただけで製品が壊れていると推測せず、テストに成功しただけで実装が安全だとも推測しない。
 
-The analysis must cover:
+分析には次を含める。
 
-1. `Outcome`: identify the phase and exact gate where the loop stopped, the verdicts and review cycles used, and what did or did not pass.
-2. `Cause`: classify each blocking issue as a Plan/policy decision, test-design gap, implementation defect, scope violation, environment/tool failure, or protocol failure. Explain the causal chain briefly and cite the relevant file, test, or agent finding.
-3. `Residual risk`: state what remains unaccepted, the concrete user-visible or operational impact, and what is only unverified. Distinguish a weakness in the test's ability to detect a defect from evidence that the implementation actually has that defect.
-4. `Options`: give the smallest set of viable next actions, normally two or three, with the material trade-off for each. Include an option to accept a documented residual risk only when the user can make that decision explicitly.
-5. `Recommendation`: select one option and state why it best fits the approved Plan, risk, and remaining evidence. Identify whether the next action is a fresh test-design gate, a new implementation loop, a missing user decision, or a manual acceptance check.
+1. `Outcome`：停止したフェーズと正確なゲート、使用した判定とレビューサイクル、成功したものと成功しなかったものを示す
+2. `Cause`：各ブロッキング問題を、Plan・方針上の判断、テスト設計の不足、実装欠陥、範囲違反、環境・ツールの失敗、プロトコル違反に分類する。関連するファイル、テスト、エージェント指摘を示し、因果関係を簡潔に説明する
+3. `Residual risk`：未受け入れの事項、具体的なユーザー向けまたは運用上の影響、未検証にとどまる事項を示す。テストが欠陥を検出できない弱点と、実装に実際に欠陥がある証拠を区別する
+4. `Options`：実行可能な次の対応を、通常は2〜3個の最小限の選択肢として示し、それぞれの重要なトレードオフを説明する。ユーザーが明示的に判断できる場合に限り、残存リスクを文書化して受け入れる選択肢を含める
+5. `Recommendation`：承認済みPlan、リスク、残る証拠にもっとも適合する選択肢を選び、その理由を示す。次の対応が新しいテスト設計ゲート、新しい実装ループ、不足しているユーザー判断、手動確認のいずれであるかを明示する
 
-Do not silently revise the approved Plan, weaken the locked tests, resume the loop, or apply the recommendation in the same terminal path. A non-pass analysis is a decision-support report; it is not approval to continue or to mark the work complete. If the loop stopped because of `REVIEW_LIMIT_REACHED`, preserve and surface all remaining findings and explicitly state that the result is incomplete.
+承認済みPlanを黙って変更したり、固定テストを弱めたり、ループを再開したり、同じ終了経路で推奨案を適用したりしない。非 `PASS` 分析は意思決定を支援する報告であり、続行の承認ではなく、完了宣言でもない。`REVIEW_LIMIT_REACHED` で停止した場合は、残るすべての指摘を示し、結果が不完全であることを明記する。
 
-Write the non-pass analysis in ordinary prose with short headings such as `結果`, `原因`, `残存リスク`, `選択肢`, and `推奨案`. Do not hide it in a fenced code block or present it only as YAML, JSON, or another machine-readable structure. The reader must be able to understand the conclusion and recommended next action from the normal report text.
+非 `PASS` 分析は、`結果`、`原因`、`残存リスク`、`選択肢`、`推奨案` のような短い見出しを使い、通常の文章で書く。コードブロックに隠したり、YAML、JSONなどの機械可読形式だけで示したりしない。通常の報告文だけで、結論と推奨する次の対応を理解できるようにする。
 
-## Completion report
+## 完了報告
 
-Report:
+次を報告する。
 
-- final state: `PASS`, `BLOCKED`, `TEST_DESIGN_BLOCKED`, or `REVIEW_LIMIT_REACHED` (the latter is explicitly incomplete);
-- effective model and reasoning settings recorded at loop start, including `unknown` values;
-- test-review verdicts and implementation-review cycles used;
-- locked acceptance-test files and whether their hashes remained unchanged;
-- acceptance-and-risk matrix coverage and completed/unverified manual checks;
-- files changed and concise implementation summary;
-- tests run with pass/fail/not-run status;
-- remaining findings, risks, or unverified behavior;
-- for every non-`PASS` state, the `non_pass_analysis` described above, including the recommended next action;
-- confirmation that unrelated user changes were preserved, or the exact exception.
+- 最終状態：`PASS`、`BLOCKED`、`TEST_DESIGN_BLOCKED`、または `REVIEW_LIMIT_REACHED`（後者は明示的に不完全）
+- ループ開始時に記録した実効モデルと推論設定（`unknown` を含む）
+- テストレビューの判定と、使用した実装レビューサイクル
+- 固定受け入れテストのファイルと、ハッシュが変更されていないか
+- 受け入れ・リスクマトリクスの網羅状況と、完了・未検証の手動確認
+- 変更ファイルと簡潔な実装概要
+- 実行したテストと、成功・失敗・未実行の状態
+- 残っている指摘、リスク、未検証の動作
+- `PASS` 以外の状態では、推奨する次の対応を含む、上記の `non_pass_analysis`
+- 無関係なユーザー変更を保持したこと、またはその正確な例外
 
-Do not add an invitation to continue or propose unrelated follow-up work.
+続行の誘いや無関係なフォローアップの提案を追加しない。
