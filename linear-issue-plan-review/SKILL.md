@@ -9,19 +9,26 @@ description: "指定された Linear Issue の initial-plan をRepository上の�
 
 ## プロファイル選択
 
-IssueとRepositoryから、単一ユーザーのローカル用途、短いスクリプト、共有サービス・本番データ・機密情報・不可逆な外部副作用がないと確認でき、ユーザーが「厳格」「レビュー」「独立レビュー」「テスト先行」「本番」「共有」「公開」「セキュリティ」などを明示していない場合は軽量プロファイルを使います。それ以外は厳格プロファイルを使います。
+このスキルを呼び出しただけでは、厳格プロファイルを選びません。IssueとRepositoryから、単一ユーザーのローカル用途、短いスクリプト、共有サービス・本番データ・機密情報・不可逆な外部副作用がないと確認でき、ユーザーが「厳格」「レビュー」「独立レビュー」「テスト先行」「本番」「共有」「公開」「セキュリティ」などを明示していない場合は軽量プロファイルを使います。
+
+それ以外は厳格プロファイルを適用する可能性があるため、実行前にユーザーへ厳格プロファイルを適用するか確認してください。
+
+- 厳格プロファイルはユーザーの確認・承認なしには実行しません
+- 厳格プロファイルを適用することが確認・承認されたら、実行前に [references/strict-profile.md](references/strict-profile.md) を読みます
 
 ### 軽量プロファイル（標準）
 
-- 親AgentだけでIssue、既存Plan、Repositoryを確認する。既存Planがあればbaselineとしてrefineし、なければ新規Planを作る
+- 親AgentでIssue、既存Plan、Repositoryを確認し、既存Planがあればbaselineとしてrefineし、なければ新規Planを作る
 - PlanはIssueの目的に直接対応する範囲に絞り、不要な要件、抽象化、依存関係、リスク項目を追加しない
 - DescriptionのPlan領域だけを更新し、外側の内容を保持する
-- 独立Planner／Reviewer、レビューComment、Cycle管理、Status変更は行わない
-- Issueから共有・本番・外部副作用・機密情報・権限・データ損失のリスクが判明したら、厳格プロファイルへ切り替えるか `PLAN_BLOCKED` とする
+- 親Agentは別Agentの軽量Reviewerを1つ起動し、Planの要求適合、範囲、Repositoryの根拠、最小限の検証を読み取り専用で確認させる。ReviewerにLinear、ファイル、外部システムを書き込ませない
+- Reviewerの確認は1回とし、具体的な問題があれば親AgentがPlan領域だけを修正して同じReviewerに1回だけ再確認させる。好みや任意の改善はブロッカーにしない
+- レビューComment、Cycle管理、Status変更は行わない
+- Issueから共有・本番・外部副作用・機密情報・権限・データ損失のリスクが判明したら、厳格プロファイルへ自動で切り替えず、ユーザーの確認・承認を求めて停止するか `PLAN_BLOCKED` とする
 
 ### 厳格プロファイル
 
-軽量プロファイルの共通Plan処理に加え、Luna Planner、Sol Reviewer、レビューComment、Status遷移、最大3 Cycleの契約を適用します。
+ユーザーの確認・承認後に限り、[references/strict-profile.md](references/strict-profile.md) のPlanner、Reviewer、レビューComment、Status遷移、最大3 Cycleの契約を適用します。
 
 ## 共通契約
 
@@ -66,9 +73,8 @@ Initial-planのクラウド側Skillを修正する必要がある場合は、既
 ## ツールとAgent
 
 - Issue: `linear_get_issue`、保存： `linear_save_issue`、Comment: `linear_list_comments`/`linear_save_comment`
-- Planner: `gpt-5.6-luna`/`xhigh`; Reviewer: `gpt-5.6-sol`/`high`
-- 名前付きAgentは契約と実効設定が完全一致する場合だけ使用する。不一致・不明時は `default` に各モデル・推論設定を明示する。実効設定を確認できない場合は `BLOCKED`
-- PlannerとReviewerは別Agentとし、同じRepository root、ローカル指示、確認対象codebaseを渡す。SubagentにLinear、ファイル、外部システムを書き込ませない
+- 軽量プロファイルは親Agentと別AgentのReviewerを使い、厳格プロファイルは別AgentのPlannerとReviewerを使う。各Agentには同じRepository root、ローカル指示、確認対象codebaseを渡す
+- SubagentにLinear、ファイル、外部システムを書き込ませない。Agentのモデル・推論設定、フォールバック、終了条件は厳格プロファイルでは [references/strict-profile.md](references/strict-profile.md) に従う
 
 ## Repositoryと入力固定
 
@@ -81,7 +87,7 @@ Initial-planのクラウド側Skillを修正する必要がある場合は、既
 
 ### Plan作成・refinement
 
-Plannerまたは親Agentは、Issue、全Comments、確定Repository、ローカル指示、対象codebase、既存Planを確認します。
+親Agentは、Issue、全Comments、確定Repository、ローカル指示、対象codebase、既存Planを確認します。
 
 既存Planがある場合は次を守ります。
 
@@ -92,6 +98,12 @@ Plannerまたは親Agentは、Issue、全Comments、確定Repository、ローカ
 - `Initial Plan` と `Repository-aware Plan` の別セクションを作らない
 
 既存Planがない場合は、Issueの要求とRepositoryの事実から新規Planを作成します。Planには目的、範囲、要求との対応、確認済みファイル・依存関係・テスト根拠、実施項目、受入条件、検証、未確認事項を含めます。Issueから導けない仕様、互換性、エラー処理、セキュリティ方針、期限を発明しません。
+
+### 軽量プロファイルのReview
+
+親Agentは作成・refineしたPlan、Issue、Repositoryの根拠、検証方法、既存変更を別AgentのReviewerへ渡します。Reviewerは読み取り専用で1回確認し、要求適合、範囲、Repositoryの根拠、検証可能性、未確認事項だけを判定します。具体的な問題がある場合、親AgentはPlan領域だけを修正し、同じReviewerに1回だけ再確認させます。
+
+Reviewerが好みや任意の改善だけを指摘した場合はブロッカーにしません。Reviewerが情報不足・方針不足・競合を示した場合は、親Agentは推測で補わず `PLAN_BLOCKED` として停止します。
 
 ### Description保存
 
@@ -104,29 +116,10 @@ Plan markerがない場合は、最新Descriptionの末尾にcanonical markerを
 3. 保存直後に再取得し、意図したPlan、marker外保持、保存前の期待Statusを確認する。成功時だけ再取得値を次のbaselineにする
 4. 初回保存が未達で、再取得値が保存前baselineと完全一致する場合だけ1回再試行する。再試行後の未達、差分、取得不能、検証不能は `BLOCKED`
 
-### 厳格プロファイルのReview
+## 厳格プロファイルの実行
 
-初回Plan保存・再取得確認後だけStatusを `In Plan Review` へ更新します。Status更新前後にIssueを再取得して期待値を確認します。
-
-Reviewerは要求、Repository、Plan、範囲、依存関係、受入条件、失敗経路、検証、未確認事項、Spike modeの暫定判断を独立に確認し、好みや任意の改善だけで `REVISE`/`REPLAN` にせず、次の1つだけを返します。情報・方針不足はReviewer判定ではなく親Agentの `PLAN_BLOCKED` とします。
-
-- `APPROVE`: Planを承認できる
-- `REVISE`: 同じPlan領域の局所修正が必要
-- `REPLAN`: baselineを安全にrefineできない重大な矛盾がある
-
-判定Commentは保存直前に全ページを取得してID baselineを固定し、次の完全本文で保存します。
-
-```text
-Issue ID: <issue-identifier>
-Cycle n/3
-Decision: APPROVE|REVISE|REPLAN
-Findings: reviewerの指摘全文
-```
-
-Comment保存後は全ページを再取得し、正常応答では返却ID・本文を、応答不明ではbaseline外の完全一致Commentが1件だけ存在することを確認します。それ以外は再投稿・Status更新をせず `BLOCKED` とします。
-
-Comment確認後、Issueが `In Plan Review` であることを再取得確認します。`REVISE`/`REPLAN` はStatusを `Todo` へ戻し、Cycle 1–2だけ同じPlannerでcanonical Planを更新して再開します。`APPROVE` はStatusを `Test Implementation` へ進めます。Cycle 3の非承認は `REVIEW_LIMIT_REACHED` として停止し、Planner・Reviewerを起動せず、Planを勝手に承認しません。Agentが利用できない場合の `default` 置換はCycle 1–2だけ、実効Luna/xhighまたはSol/highを確認できる場合に限ります。それ以外は `BLOCKED` とします。
+ユーザーの確認・承認後に限り、[references/strict-profile.md](references/strict-profile.md) を読み、そこに定めるPlanner、Reviewer、レビューComment、Status遷移、最大3 Cycleの契約を適用します。
 
 ## 終了報告
 
-`APPROVED`、`PLAN_BLOCKED`、`REVIEW_LIMIT_REACHED`、`BLOCKED` のいずれかを報告します。Issue ID/title、実効Agent・モデル・推論設定、各Cycle判定、Description/Comment/Statusの再取得結果、最終Plan、未確認事項を含めます。実Linearやクラウド側を実行していない場合は `UNVERIFIED` と明記し、成功扱いしません。
+軽量プロファイルではReviewer判定、Plan保存の再取得結果、未確認事項を報告します。厳格プロファイルでは [references/strict-profile.md](references/strict-profile.md) の終了報告に従います。実Linearやクラウド側を実行していない場合は `UNVERIFIED` と明記し、成功扱いしません。
