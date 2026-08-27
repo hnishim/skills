@@ -1,137 +1,55 @@
 ---
 name: linear-issue-plan-review
-description: "指定された Linear Issue の initial-plan をRepository上の事実で検証・具体化し、既存Planがなければ新規Planを作成して保存する。"
+description: "指定されたLinear Issueのinitial-planをRepository上の事実で検証・具体化し、既存Planをrefineするか新規Planを作成して保存する。承認済みPlanの実装は扱わない。"
 ---
 
 # Linear Issue Plan Review
 
-指定IssueをSource of TruthとしてRepositoryを確認し、initial-plan由来の既存Planがあれば同じPlanをRepository-awareにrefineします。既存Planがなければ新規Planを作成します。承認済みPlanの実装は扱いません。
+Linear IssueをSource of TruthとしてRepositoryを確認し、canonical Planを作成またはRepository-awareにrefineします。Planの実装は行いません。
 
-## 共通方針
+## プロファイル
 
-- 記述と実装方針は目的達成に必要な最小限とし、できるだけシンプルでライトにします。複雑化させません
-- 重複や効果の薄い記述・ロジックは追加せず、同じ内容をより短く書ける場合は短いほうを採用します
-- 作業範囲だけでなく共通化すべき部分がないかを常に検討します。ただし、共通化は重複と複雑さをともに減らし、Issueの目的に直接対応する既存スコープ内の場合だけ採用します
-
-## プロファイル選択
-
-このスキルを呼び出しただけでは、厳格プロファイルを選びません。対象IssueのPlan保存、レビュー結果Comment、保存後の限定的なworkflow Status handoffは標準処理として扱います。そのうえで、IssueとRepositoryから単一ユーザーのローカル用途、短いスクリプト、共有サービス・本番データ・機密情報・不可逆な外部副作用がないと確認でき、ユーザーが「厳格」「レビュー」「独立レビュー」「テスト先行」「本番」「共有」「公開」「セキュリティ」などを明示していない場合は軽量プロファイルを使います。
-
-それ以外は厳格プロファイルを適用する可能性があるため、実行前にユーザーへ厳格プロファイルを適用するか確認してください。
-
-- 厳格プロファイルはユーザーの確認・承認なしには実行しません
-- 厳格プロファイルを適用することが確認・承認されたら、実行前に [references/strict-profile.md](references/strict-profile.md) を読みます
-
-### 軽量プロファイル（標準）
-
-- 親AgentでIssue、既存Plan、Repositoryを確認し、既存Planがあればbaselineとしてrefineし、なければ新規Planを作る
-- PlanはIssueの目的に直接対応する範囲に絞り、不要な要件、抽象化、依存関係、リスク項目を追加しない
-- DescriptionのPlan領域だけを更新し、外側の内容を保持する
-- 親Agentは別Agentの軽量Reviewerを1つ起動し、Planの要求適合、範囲、Repositoryの根拠、最小限の検証を読み取り専用で確認させる。ReviewerにLinear、ファイル、外部システムを書き込ませない
-- Reviewerの確認は1回とし、具体的な問題があれば親AgentがPlan領域だけを修正して同じReviewerに1回だけ再確認させる。好みや任意の改善はブロッカーにしない
-- Cycle管理は行わない。Reviewerの判定後、親Agentが共通契約のレビュー結果Commentを1件保存し、判定に応じてStatusを更新する
-- Issueから共有・本番・外部副作用・機密情報・権限・データ損失のリスクが判明したら、厳格プロファイルへ自動で切り替えず、ユーザーの確認・承認を求めて停止するか `PLAN_BLOCKED` とする
-
-### 厳格プロファイル
-
-ユーザーの確認・承認後に限り、[references/strict-profile.md](references/strict-profile.md) のPlanner、Reviewer、レビューComment、Status遷移、最大3 Cycleの契約を適用します。
+- Plan保存、読み取り専用Review、レビューComment、限定的なworkflow Status handoffは標準処理です
+- IssueとRepositoryから、単一ユーザーの短いローカルスクリプトで、共有サービス・本番データ・機密情報・権限・不可逆な外部副作用・データ損失リスクがなく、厳格なレビューやテスト先行の指定もないと確認できる場合は軽量プロファイルを使います
+- それ以外は、厳格プロファイルが必要な根拠を示してユーザーの確認・承認を得ます。承認なしにstrictのAgent起動、Plan保存、Comment保存、Status変更を行いません。承認後は [references/strict-profile.md](references/strict-profile.md) を読みます
+- タイトルが `Spike:` で始まる、または `Spike` ラベルがある場合は、選択したプロファイルに加えて [references/spike-mode.md](references/spike-mode.md) を読みます
 
 ## 共通契約
 
-- 開始対象はStatusが `Backlog` または `Todo` のIssue。`Backlog` はcanonical Planなしの新規作成、`Todo` の既存PlanはRepository未検証のbaselineとして扱う。`In Plan Review` は、canonical Planがあり、レビュー結果Comment保存前のhandoff回復に限って再開対象とする
-- Issue IDがない、複数ある、対象を特定できない、またはDescriptionのPlan領域を安全に特定できない場合はLinearを変更せず停止する
-- Descriptionのマーカー外、タイトル、担当者、ラベル、関連付けは保持する
-- 許可する外部書き込みは対象IssueのDescription、レビューComment、workflow Statusだけとし、実行するのは親Agentだけとする
-- Plan本文にStatus、Review cycle、終端状態を保存しない。Workflow Statusを唯一の状態管理とする
-- Linear、Agent、Repository、保存・再取得が不明・競合・失敗した場合は推測せず `BLOCKED` とする
-
-## Issueのモード
-
-- タイトルが `Spike:` で始まる、またはラベルに `Spike` が含まれる場合はSpike modeとする。タイトルとラベルが矛盾する場合は、タイトルとDescriptionの目的を優先し、判定理由をPlanに記載する
-- 通常modeではIssueにない仕様を確定しない。Spike modeでは、検証を進めるための局所的で可逆的な事項だけ暫定判断を置いてよい
-- 暫定判断は事実や確定要件として扱わず、`暫定判断`、根拠、影響範囲、検証方法、変更可能性をPlanに記載する
-- Spike modeで `PLAN_BLOCKED` にするのは、外部APIへの実データ送信、本番データ、認証情報、課金、権限、セキュリティ、不可逆な変更など、Issueから安全に選べず暫定判断でも検証できない事項に限る。ホットキー、検証用モデル、ファイル配置、最小限のUI、検証用エラー表示など、検証用の可逆的な細部は合理的な暫定値を置く
-- Spike modeの受入条件は完成品の品質ではなく、各検証ポイントについて成功・失敗・未検証を判定でき、採用した暫定判断、技術的制約、未実装範囲、次の判断事項を記録できることとする
-
-## Plan handoffとmarker
-
-Initial-planとCodex Planningは、Planの由来を別々に記録せず、同じcanonical Plan領域を段階的に更新します。Planの由来を見出し名や内容から推測しません。
-
-LinearがHTMLコメントをMarkdownとして正規化するため、Descriptionの区切りにはHTMLコメントを使いません。新しいcanonical markerは、Linearが変換しないASCIIの単独行とします。
+- 対象はStatusが `Backlog` または `Todo` のIssueです。`In Plan Review` は、canonical PlanがありレビューComment保存前のhandoffを回復する場合だけ対象にします。`Backlog` はPlanなし、`Todo` の既存Planは未検証baselineです
+- Issue IDが一意でない、DescriptionのPlan領域を安全に特定できない、入力取得に失敗・競合がある場合はLinearを変更せず `BLOCKED` とします。推測で補いません
+- Repositoryは、明示パス、現在workspace、workspaceから一意に決まるGit rootの順で決めます。不明・複数候補・検証不能なら書き込み前に停止します
+- Issueは `linear_get_issue`、Commentsは `linear_list_comments`（Cursorで最後まで）、保存は `linear_save_issue`、Commentは `linear_save_comment` を使います
+- 開始時にIssue、Description、Status、identifier、labels、project/team、全Commentsを取得し、`description_baseline`、`status_baseline`、`comments_baseline` を固定します
+- 外部書き込みは対象IssueのDescription、レビューComment、workflow Statusだけです。実行するのは親Agentだけで、Subagentは読み取り専用です。タイトル、担当者、ラベル、関連付け、marker外のDescriptionは保持します
+- Plan本文にStatus、Review cycle、終端状態を保存しません。Workflow Statusを唯一の状態管理とします
+- 新しいcanonical markerは、Linearが変換しないASCII単独行の1組です。完全な1組以外（複数、片側欠落、逆順、境界不明）は `BLOCKED` とします。旧HTML markerは境界を取得結果で完全一致確認できる場合だけ1回限り移行します
+- Markerがない場合はcanonical Planなしとして扱い、Descriptionの見出しからinitial-plan由来と推測しません。旧marker断片や変換された終端記号が残るのに完全なmarkerを特定できない場合は、新markerを追加せず `BLOCKED` とします
 
 ```text
 CODEX_LINEAR_ISSUE_PLAN_START
 ## Implementation Plan
 
-（initial-planまたはCodex PlanningのPlan本文）
+（Plan本文）
 CODEX_LINEAR_ISSUE_PLAN_END
 ```
 
-- 完全なmarkerが1組ある場合だけ、そこをbaselineまたは更新対象とする
-- Markerが複数ある、片側が欠落する、順序が逆、または範囲を一意に決められない場合は `BLOCKED`
-- Markerがない場合はcanonical Planなしとして扱い、Descriptionの見出しからinitial-plan由来と推測しない
-- 旧HTML markerは、取得結果で開始・終了境界を完全一致として確認できる場合だけ1回限り新markerへ移行する。Linear正規化後の `→` などを推測で復元しない
-- 旧markerの断片や変換された終端記号が残っているのに完全なmarkerを特定できない場合は、新markerを追加せず `BLOCKED` とする
-- Plan Reviewの `REVISE`/`REPLAN` でも新しいPlan領域を追加せず、同じcanonical Planを更新する
+- Planの由来を見出し名や内容から推測せず、initial-planとCodex Planningは同じcanonical Planを段階的に更新します。REVISE/REPLANでもPlan領域を追加しません
+- Initial-planのクラウド側Skillを修正する必要がある場合は、既存版を先に取得して内容を変えずRepositoryへ取り込み、修正・検証後に利用可能な経路で反映し、再取得して一致を確認します。経路がなければ捏造せず `PLAN_BLOCKED` とします
 
-Initial-planのクラウド側Skillを修正する必要がある場合は、既存のクラウド版を最初に読み取り取得し、内容を変更せずRepositoryへ取り込んでから修正します。Repository版を検証した後、利用可能なクラウド側の書き込み経路で反映し、再取得して一致を確認します。クラウド版の取得・書き込み経路が利用できない場合は、Skillを捏造・代替作成せず `PLAN_BLOCKED` とします。
+## Plan作成とReview
 
-## ツールとAgent
+1. Issue、全Comments、確定Repository、ローカル指示、対象codebase、既存Planを確認します。Descriptionが空なら、通常modeでは停止し、Spike modeでは検証目的が明確な場合だけ最小Planを作成します
+2. 既存Planは正しい部分を維持し、Repositoryの事実で誤り・曖昧さ・不足だけを該当箇所へ反映します。新規Planには目的、範囲、要求との対応、Repositoryの根拠、実施項目、受入条件、検証、未確認事項を含めます。Issueにない仕様を発明しません
+3. 軽量プロファイルではCycle管理をせず、親Agentが別AgentのReviewerを1つ起動します。Reviewerは要求適合、範囲、Repositoryの根拠、検証可能性、未確認事項を読み取り専用で確認し、`APPROVE`、`REVISE`、`REPLAN` とFindingsを1回返します。具体的な問題だけPlan領域を修正し、同じReviewerに1回だけ再確認させます。好みや任意改善はブロッカーにせず、情報・方針不足は `PLAN_BLOCKED` とします
+4. 厳格プロファイルでは [references/strict-profile.md](references/strict-profile.md) のPlanner、Reviewer、Cycle契約を適用します
 
-- Issue: `linear_get_issue`、保存： `linear_save_issue`、Comment: `linear_list_comments`/`linear_save_comment`
-- 軽量プロファイルは親Agentと別AgentのReviewerを使い、厳格プロファイルは別AgentのPlannerとReviewerを使う。各Agentには同じRepository root、ローカル指示、確認対象codebaseを渡す
-- SubagentにLinear、ファイル、外部システムを書き込ませない。Agentのモデル・推論設定、フォールバック、終了条件は厳格プロファイルでは [references/strict-profile.md](references/strict-profile.md) に従う
+## Description保存とStatus handoff
 
-## Repositoryと入力固定
-
-1. Repositoryは、明示パス、現在workspace、workspaceから一意に決まるGit rootの順で決定する。不明・複数候補・検証不能なら書き込み前に `BLOCKED`
-2. `linear_get_issue` でIssue、Description、Status、identifier、labels、project/teamを取得する。Statusが `Backlog`/`Todo` 以外で、`In Plan Review` のhandoff回復条件にも該当しない場合は停止する。Descriptionが空の場合、通常modeでは推測で要件を補わず情報不足として停止し、Spike modeでは検証目的が取得情報から明確な場合だけ最小計画を許可する
-3. `linear_list_comments` をCursorで最後まで取得する。取得不能、重複識別不能、またはbaselineを固定できない場合は停止する
-4. 開始時に `description_baseline`、`status_baseline`、`comments_baseline` を固定する。Canonical marker内のPlanは未検証baselineとしてPlannerへ渡し、marker外は保持対象とする
-
-## 実行
-
-### Plan作成・refinement
-
-親Agentは、Issue、全Comments、確定Repository、ローカル指示、対象codebase、既存Planを確認します。
-
-既存Planがある場合は次を守ります。
-
-- 既存Planを読み、Repositoryの事実で各項目を検証する
-- 正しい部分は維持し、誤り・曖昧さ・不足がある箇所だけを変更する
-- Repository固有のファイル、関数、変更箇所、実装順序、検証方法を既存Planの該当箇所へ追加する
-- 目的・要件・制約・受入条件は、Repositoryとの矛盾または明確な不足がない限り再記述しない
-- `Initial Plan` と `Repository-aware Plan` の別セクションを作らない
-
-既存Planがない場合は、Issueの要求とRepositoryの事実から新規Planを作成します。Planには目的、範囲、要求との対応、確認済みファイル・依存関係・テスト根拠、実施項目、受入条件、検証、未確認事項を含めます。Issueから導けない仕様、互換性、エラー処理、セキュリティ方針、期限を発明しません。
-
-### 軽量プロファイルのReview
-
-親Agentは作成・refineしたPlan、Issue、Repositoryの根拠、検証方法、既存変更を別AgentのReviewerへ渡します。Reviewerは読み取り専用で1回確認し、要求適合、範囲、Repositoryの根拠、検証可能性、未確認事項を確認し、`APPROVE`、`REVISE`、`REPLAN` のいずれかとFindingsを返します。具体的な問題がある場合、親AgentはPlan領域だけを修正し、同じReviewerに1回だけ再確認させます。
-
-Reviewerが好みや任意の改善だけを指摘した場合はブロッカーにしません。Reviewerが情報不足・方針不足・競合を示した場合は、親Agentは推測で補わず `PLAN_BLOCKED` として停止します。
-
-### Description保存
-
-Plan markerがない場合は、最新Descriptionの末尾にcanonical markerを1組だけ追加します。既存の場合は、最初の完全なcanonical markerの内側だけを置換します。Marker外のDescriptionは最新値を基礎に保持します。
-
-すべてのPlan保存で次を行います。
-
-1. 保存直前にIssueを再取得し、固定baselineのDescriptionとStatusに一致することを確認する。不一致・取得不能は `BLOCKED`
-2. 最新Descriptionを基礎にmarker内だけをマージして保存する
-3. 保存直後に再取得し、意図したPlan、marker外保持、保存前の期待Statusを確認する。成功時だけ再取得値を次のbaselineにする
-4. 初回保存が未達で、再取得値が保存前baselineと完全一致する場合だけ1回再試行する。再試行後の未達、差分、取得不能、検証不能は `BLOCKED`
-
-### Plan保存後のStatus handoff
-
-- Plan保存と再取得確認が成功したら、開始Statusが `Backlog` または `Todo` の場合だけ、対象Issueを `In Plan Review` へ更新する。Planの保存は承認を意味しない
-- Status更新前にIssueを再取得し、現在Statusが保存時の期待値で、DescriptionのPlanとmarker外が直前の再取得結果から変わっていないことを確認する。不一致・取得不能は `BLOCKED`
-- Status更新は親Agentだけが行う。更新後にIssueを再取得し、`In Plan Review`、Plan、marker外のDescriptionを確認する。Status更新後にPlanが欠落・変化している場合は成功扱いにしない
-- Status更新前に中断し、再取得時点ですでに `In Plan Review` かつPlanとDescriptionが一致する場合はhandoff済みとして再更新しない。`Backlog` または `Todo` のままなら、最新状態を再取得してからStatus更新だけを再開する。それ以外のStatusは推測せず `BLOCKED`
-
-### Review結果の記録とStatus遷移
-
-- Reviewerは `APPROVE`、`REVISE`、`REPLAN` のいずれかとFindingsを返す。Plan保存後に `In Plan Review` へhandoffできたことを確認してから、親Agentが次のレビュー結果Commentを1件保存する
+- Plan markerがなければ最新Description末尾に1組追加し、あれば最初の完全なcanonical marker内だけを置換します。保存直前にIssueを再取得し、DescriptionとStatusがbaselineに一致することを確認します。不一致・取得不能は `BLOCKED` です
+- 保存後にIssueを再取得し、意図したPlan、marker外の保持、保存前の期待Statusを確認します。初回保存が未達で、再取得値が保存前baselineと完全一致する場合だけ1回再試行します。それ以外の未達、差分、取得不能、検証不能は `BLOCKED` とします
+- Plan保存と再取得確認が成功し、開始Statusが `Backlog` または `Todo` なら、親Agentだけが `In Plan Review` へ更新します。更新前後にStatus、Plan、marker外を再取得確認します。中断後にすでに同じPlanで `In Plan Review` なら再更新しません
+- `In Plan Review` へのhandoff確認後、親Agentが次のCommentを1件保存します。保存直前に全CommentsとIssue（Status、Plan、marker外）のbaselineを再固定し、保存後に完全一致するCommentが1件だけ増えたことを確認します。重複・不明・取得不能なら再投稿やStatus更新をしません
 
 ```text
 Issue ID: <issue-identifier>
@@ -139,15 +57,8 @@ Decision: APPROVE|REVISE|REPLAN
 Findings: reviewerの指摘全文
 ```
 
-- Comment保存直前に全ページを取得してCommentsのbaselineを固定し、Issueが `In Plan Review` でDescriptionのPlanとmarker外が直前の再取得結果から変わっていないことを確認する。不一致・取得不能は `BLOCKED`
-- Comment保存後に全ページを再取得し、返却されたCommentまたはbaseline外の完全一致Commentが1件だけ存在することを確認する。重複・不明・取得不能の場合は再投稿やStatus更新をせず `BLOCKED`
-- Comment確認後、`APPROVE` はStatusを `Test Implementation` へ、`REVISE` または `REPLAN` はStatusを `Todo` へ更新する。Status更新前後にIssueを再取得し、Comment、Plan、marker外のDescriptionを確認する
-- `In Plan Review` でレビュー結果Commentがまだない場合は、既存Planを再レビューしてからComment保存だけを再開する。期待するCommentとStatusが既に存在する場合は再投稿・再更新しない。それ以外のStatusや矛盾するCommentは推測せず `BLOCKED`
-
-## 厳格プロファイルの実行
-
-ユーザーの確認・承認後に限り、[references/strict-profile.md](references/strict-profile.md) を読み、そこに定めるPlanner、Reviewer、レビューComment、Status遷移、最大3 Cycleの契約を適用します。
+- Comment確認後、`APPROVE` は `Test Implementation`、`REVISE`/`REPLAN` は `Todo` へ更新します。Status更新前後にComment、Plan、marker外を再取得します。期待するCommentとStatusがすでに存在する場合は再投稿・再更新しません。それ以外のStatusや矛盾するCommentは `BLOCKED` とします
 
 ## 終了報告
 
-軽量プロファイルではReviewer判定、Plan保存・Status handoff・レビューCommentの再取得結果、未確認事項を報告します。厳格プロファイルでは [references/strict-profile.md](references/strict-profile.md) の終了報告に従います。実Linearやクラウド側を実行していない場合は `UNVERIFIED` と明記し、成功扱いしません。
+軽量プロファイルではReviewer判定、Plan保存・各再取得、Status handoff、レビューComment、未確認事項を報告します。厳格プロファイルではstrict参照の形式に従います。実Linearやクラウド側を実行していない場合は `UNVERIFIED` と明記し、成功扱いしません。
