@@ -9,6 +9,9 @@ dist/
 build/
 **/build/
 
+# Codexが管理する組み込みスキル。iCloud上には置くがGitでは管理しない。
+.system/
+
 .env
 .env.*
 credentials.json
