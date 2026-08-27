@@ -11,6 +11,12 @@ metadata:
 
 指定されたLinear Issueに対して、Repositoryを確認する前段階の**初期プラン**を作成し、その内容をIssue Descriptionへ保存する。Linear Issueを永続的なSource of Truthとして扱い、チャット履歴だけを要求仕様の根拠にしない。このSkillが完了したIssueは `Todo` とし、後続のCodex側PlanningがRepositoryを確認してcanonicalなImplementation Planへ更新する。
 
+## 共通方針
+
+- 記述は目的達成に必要な最小限とし、できるだけシンプルでライトにします。複雑化させません。
+- 重複や効果の薄い記述は追加せず、同じ内容をより短く書ける場合は短い方を採用します。
+- 作業範囲だけでなく共通化すべき部分がないかを常に検討します。ただし、未確認のRepository事実は断定せず、共通化のためにIssueの要件・スコープを広げません。
+
 ## Plan markerとLinearの正規化
 
 初期Planの `## Implementation Plan` は、後続のRepository-aware Planningが同じ領域を更新できるよう、次のcanonical markerで囲む。
