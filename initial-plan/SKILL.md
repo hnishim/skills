@@ -9,7 +9,7 @@ metadata:
 
 ## 目的
 
-指定されたLinear Issueに対して、Repositoryを確認する前段階の**初期プラン**を作成し、その内容をIssue Descriptionへ保存する。Linear Issueを永続的なSource of Truthとして扱い、チャット履歴だけを要求仕様の根拠にしない。このSkillが完了したIssueは `Todo` とし、後続のCodex側PlanningがRepositoryを確認してcanonicalなImplementation Planへ更新する。
+指定されたLinear Issueに対して、Repositoryを確認する前段階の**初期プラン**を作成し、その内容をIssue Descriptionへ保存する。Linear Issueを永続的なSource of Truthとして扱い、チャット履歴だけを要求仕様の根拠にしない。このSkillが完了したIssueは `Todo` とし、後続のCodex側PlanningがRepositoryを確認してcanonicalな実装プランへ更新する。
 
 ## 共通方針
 
@@ -26,23 +26,26 @@ Issueの規模・性質を次の順で4分類し、最初に該当した粒度�
 3. **小規模Task**: 非Spikeかつ複雑Issueではなく、設定変更・文書変更・単純Taskなど、要件・依存関係・検証論点が限定的なIssue
 4. **通常Issue**: 上記以外のIssue
 
-全分類で目的・明示要件・存在する制約・受入条件・canonical marker内のImplementation Planを保持する。小規模Taskはこれらを中心にし、検証は受入条件または短いテストプランに含め、情報のない任意セクションを省略する。通常Issueは標準形、複雑IssueとSpikeは後続Planningに必要な詳細度を使う。Implementation Planでは必要に応じて `Linearで確定済み` と `Repository確認事項` を区別し、未確認のRepository情報は事実化しない。
+全分類で目的・明示要件・存在する制約・受入条件・canonical Description block内の実装プランを保持する。小規模Taskはこれらを中心にし、検証は受入条件または短いテストプランに含め、情報のない任意セクションを省略する。通常Issueは標準形、複雑IssueとSpikeは後続Planningに必要な詳細度を使う。実装プランでは必要に応じて `Linearで確定済み` と `Repository確認事項` を区別し、未確認のRepository情報は事実化しない。
 
-## Plan markerとLinearの正規化
+## Description block markerとLinearの正規化
 
-初期Planの `## Implementation Plan` は、後続のRepository-aware Planningが同じ領域を更新できるよう、次のcanonical markerで囲む。
+初期Planと後続のRepository-aware Planningが同じDescriptionを段階的に更新できるよう、標準Description全体を1組のcanonical markerで囲む。標準Descriptionは `## 目的` から `## 参考情報` までとし、内部の実装プラン、テストプラン、受け入れ条件、仮定、未解決事項も同じblock内で更新する。
 
 ```text
-CODEX_LINEAR_ISSUE_PLAN_START
-## Implementation Plan
+CODEX_LINEAR_ISSUE_DESCRIPTION_START
+## 目的
 
-<初期Plan>
-CODEX_LINEAR_ISSUE_PLAN_END
+<標準Description>
+## 参考情報
+
+<参考情報>
+CODEX_LINEAR_ISSUE_DESCRIPTION_END
 ```
 
-- 完全なmarker pairを1組だけ保存する
+- 完全なDescription marker pairを1組だけ保存する
 - Markerは必ず単独行にする
-- 初期Planを更新するときもmarker外のIssue情報を保持し、Plan領域だけを置き換える
+- 初期Planを更新するときもmarker外のIssue情報を保持し、Description block内だけを置き換える
 - Markerが複数ある、片側が欠落する、順序が逆、または範囲を一意に決められない場合は、Descriptionを上書きせず `BLOCKED` とする
 
 ## 必須入力
@@ -86,11 +89,11 @@ Linearへアクセスできない、または対象Issueを取得できない場
 7. 上記の分類に応じた粒度で、下記の定型フォーマットを基にDescription案を作る
 8. 既存Issueに含まれる重要情報を保持する。再構成はしてよいが、要件・制約・リンク・重要な注記を黙って削除しない
 9. Linear上で確認できないコードベース上の事実を捏造しない。特に、未確認のファイルパス、モジュール名、API、クラス、関数、依存関係、DBスキーマ等を事実として書かない
-10. コードベース確認が必要な場合は、Codex実行時に「何を確認するか」「その確認結果で何を決めるか」が分かる形でImplementation Planへ明記する
-11. 作成した内容にcanonical marker pairが1組だけ含まれ、HTMLコメント形式のmarkerやLinearで変換される終端記号の並びが含まれていないことを確認する
+10. コードベース確認が必要な場合は、Codex実行時に「何を確認するか」「その確認結果で何を決めるか」が分かる形で実装プランへ明記する
+11. 作成した内容にDescription marker pairが1組だけ含まれ、HTMLコメント形式のmarkerやLinearで変換される終端記号の並びが含まれていないことを確認する
 12. Issue Descriptionを更新する。保存前にIssueを再取得し、対象IssueとDescriptionの変更がないことを確認できない場合は上書きせず `BLOCKED` とする
 13. `Backlog` から開始した場合は、Description保存確認後の同じワークフローでIssue Statusを `Todo` に変更する。`Todo` の明示的な初期Plan更新ではStatusを維持する
-14. Description保存後にIssueを再取得し、marker pairが1組であること、marker外の内容が保持されていること、期待したStatusであることを確認する。確認できない場合は成功扱いにしない
+14. Description保存後にIssueを再取得し、Description marker pairが1組であること、marker外の内容が保持されていること、期待したStatusであることを確認する。確認できない場合は成功扱いにしない
 15. ユーザーには、対象Issue IDと「初期Planを記載し、Codex側Planningを開始できるTodoにした」ことだけ簡潔に報告する。依頼されない限り、Description全文はチャットへ再掲しない
 
 ## Descriptionの定型フォーマット
@@ -98,6 +101,8 @@ Linearへアクセスできない、または対象Issueを取得できない場
 以下は通常Issue、複雑Issue、Spikeの標準形である。含める見出しの順序を守り、小規模Taskでは情報のない任意セクションを省略する。
 
 ```markdown
+CODEX_LINEAR_ISSUE_DESCRIPTION_START
+
 ## 目的
 
 <このIssueで達成すること。簡潔に、成果ベースで記載する。>
@@ -118,9 +123,7 @@ Linearへアクセスできない、または対象Issueを取得できない場
 
 実質的な情報がなければセクションごと省略する。
 
-CODEX_LINEAR_ISSUE_PLAN_START
-
-## Implementation Plan
+## 実装プラン
 
 1. <具体的な実装ステップ>
 2. <具体的な実装ステップ>
@@ -128,8 +131,6 @@ CODEX_LINEAR_ISSUE_PLAN_START
 
 Coding Agentが実行できる程度に具体化する。ただし、未確認のコードベース詳細を事実として書かない。
 Repository確認が必要な場合は、確認対象と、その結果によって決まる事項を明記する。
-
-CODEX_LINEAR_ISSUE_PLAN_END
 
 ## テストプラン
 
@@ -164,6 +165,7 @@ CODEX_LINEAR_ISSUE_PLAN_END
 - ...
 
 参考情報がなければセクションごと省略する。
+CODEX_LINEAR_ISSUE_DESCRIPTION_END
 ```
 
 ## プラン品質ルール
