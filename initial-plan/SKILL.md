@@ -9,13 +9,7 @@ metadata:
 
 ## 目的
 
-指定されたLinear Issueに対して、Repositoryを確認する前段階の**初期プラン**を作成し、その内容をIssue Descriptionへ保存する。
-
-このSkillの責務は**Linear上の情報だけを使った初期プラン作成**までとする。Repository/codebaseを確認したPlanning、SolによるPlan Review、テスト実装、本実装は行わない。
-
-Linear Issueを永続的なSource of Truthとして扱い、チャット履歴だけを要求仕様の根拠にしない。
-
-このSkillが完了したIssueは `Todo` とし、後続のCodex側PlanningがRepositoryを確認してcanonicalなImplementation Planへ更新する。
+指定されたLinear Issueに対して、Repositoryを確認する前段階の**初期プラン**を作成し、その内容をIssue Descriptionへ保存する。Linear Issueを永続的なSource of Truthとして扱い、チャット履歴だけを要求仕様の根拠にしない。このSkillが完了したIssueは `Todo` とし、後続のCodex側PlanningがRepositoryを確認してcanonicalなImplementation Planへ更新する。
 
 ## Plan markerとLinearの正規化
 
@@ -28,8 +22,6 @@ CODEX_LINEAR_ISSUE_PLAN_START
 <初期Plan>
 CODEX_LINEAR_ISSUE_PLAN_END
 ```
-
-LinearがHTMLコメントをMarkdownとして正規化するため、DescriptionにはHTMLコメント形式のmarkerを使わない。ASCIIの単独行であるcanonical markerを使い、Linearが別の記号へ変換する終端記号の並びを生成しない。
 
 - 完全なmarker pairを1組だけ保存する
 - Markerは必ず単独行にする
@@ -48,10 +40,10 @@ Linearの接続アプリ／プラグインを使用する。
 
 利用可能であれば、以下の操作を使う。
 
-* `Linear.get_issue`
-* `Linear.list_comments`
-* `Linear.list_issue_statuses`
-* `Linear.save_issue`
+- `Linear.get_issue`
+- `Linear.list_comments`
+- `Linear.list_issue_statuses`
+- `Linear.save_issue`
 
 Linear Issueの内容を取得するためにWeb検索で代用しない。
 
@@ -64,16 +56,16 @@ Linearへアクセスできない、または対象Issueを取得できない場
 3. チームのIssue Statusに `Backlog` と `Todo` が存在することを確認する
 4. 現在のIssue Statusを確認する
 
-   * `Backlog`: 初期Plan作成対象として続行する
-   * `Todo`: 初期Plan作成済みでCodex側Planning待ちの状態とみなす。ユーザーが明示的に「初期Planを再作成」「初期Planを更新」などを依頼していない限り上書きしない
-   * `In Plan Review` 以降の実装ワークフロー上のStatus: ユーザーが明示的に再作成・置換を依頼していても、後続workflowのcanonical stateを壊す可能性があるため原則として更新しない
+   - `Backlog`: 初期Plan作成対象として続行する
+   - `Todo`: 初期Plan作成済みでCodex側Planning待ちの状態とみなす。ユーザーが明示的に「初期Planを再作成」「初期Planを更新」などを依頼していない限り上書きしない
+   - `In Plan Review` 以降の実装ワークフロー上のStatus: ユーザーが明示的に再作成・置換を依頼していても、後続workflowのcanonical stateを壊す可能性があるため原則として更新しない
 5. Issue title、既存Description、関連コメントを読む
 6. 内容を以下に分類する
 
-   * 明示された事実・要件
-   * 制約
-   * プラン作成のために必要な仮定
-   * 未解決事項
+   - 明示された事実・要件
+   - 制約
+   - プラン作成のために必要な仮定
+   - 未解決事項
 7. 下記の定型フォーマットに従ってDescription案を作る
 8. 既存Issueに含まれる重要情報を保持する。再構成はしてよいが、要件・制約・リンク・重要な注記を黙って削除しない
 9. Linear上で確認できないコードベース上の事実を捏造しない。特に、未確認のファイルパス、モジュール名、API、クラス、関数、依存関係、DBスキーマ等を事実として書かない
@@ -169,42 +161,40 @@ CODEX_LINEAR_ISSUE_PLAN_END
 
 ### 要件
 
-* Issue titleの言い換えだけで済ませず、ユーザーの意図を保持する
-* 要件と実装案を分離する
-* 仮定を要件として扱わない
-* 推測で新しい要件を追加しない
+- Issue titleの言い換えだけで済ませず、ユーザーの意図を保持する
+- 要件と実装案を分離する
+- 仮定を要件として扱わない
+- 推測で新しい要件を追加しない
 
 ### 実装プラン
 
-* 独立して理解できる手順へ分解する
-* 推測したコード構文ではなく、期待する挙動と責務の境界を中心に書く
-* Issue情報だけでは不足する場合、コードベース調査自体を明示的なステップとして含める
-* 過剰設計を避け、明示された要件を満たす最小限の変更を優先する
-* Migration、互換性、Error Handling、Cleanupなどは、そのIssueに関係する場合だけ含める
-* 完成度を高く見せるためだけに新しいArchitectureを選ばない
+- 独立して理解できる手順へ分解する
+- 推測したコード構文ではなく、期待する挙動と責務の境界を中心に書く
+- Issue情報だけでは不足する場合、コードベース調査自体を明示的なステップとして含める
+- 過剰設計を避け、明示された要件を満たす最小限の変更を優先する
+- Migration、互換性、Error Handling、Cleanupなどは、そのIssueに関係する場合だけ含める
+- 完成度を高く見せるためだけに新しいArchitectureを選ばない
 
 ### テストプラン
 
-* 主要な正常系を含める
-* 要件から導ける重要なEdge Case・Failure Caseを含める
-* Issueが要求していない限り、実装詳細に過度に依存するテストを避ける
-* Issueから確認できないTest Frameworkを勝手に指定しない
+- 主要な正常系を含める
+- 要件から導ける重要なEdge Case・Failure Caseを含める
+- Issueが要求していない限り、実装詳細へ過度に依存するテストを避ける
+- Issueから確認できないTest Frameworkを勝手に指定しない
 
 ### 受け入れ条件
 
-* 各項目を客観的なPass/Failで判定できるようにする
-* 「まさしく動く」「きれいなコード」「良いUX」など、測定不能な表現を単独で使わない
-* すべての明示要件が、少なくとも1つの受け入れ条件またはテスト項目へ対応していることを確認する
+- 各項目を客観的なPass/Failで判定できるようにする
+- 「まさしく動く」「きれいなコード」「良いUX」など、測定不能な表現を単独で使わない
+- すべての明示要件が、少なくとも1つの受け入れ条件またはテスト項目へ対応していることを確認する
 
 ## 情報不足時の扱い
 
-このSkillはChatGPT側でも実行されるため、ローカルRepositoryへアクセスできない場合がある。
+このSkillはChatGPT側でも実行されるため、ローカルRepositoryへアクセスできない場合がある。Linear Issueだけではコードベース情報が不足する場合でも、初期プラン自体は可能な範囲で作成する。その際は以下を守る。
 
-Linear Issueだけではコードベース情報が不足する場合でも、初期プラン自体は可能な範囲で作成する。その際は以下を守る。
-
-* Repositoryで確認すべき内容を明示する
-* 実装上の未確定事項は「未解決事項」へ記載するか、Repository確認後に決める判断として「実装プラン」に書く
-* Repository構造や現行挙動を確認したように装わない
+- Repositoryで確認すべき内容を明示する
+- 実装上の未確定事項は「未解決事項」へ記載するか、Repository確認後に決める判断として「実装プラン」に書く
+- Repository構造や現行挙動を確認したように装わない
 
 後続のCodex側Planning Workflowで、実際のコードベースに照らして初期プランを検証・具体化し、その後 `In Plan Review` へ進める。
 
@@ -216,9 +206,9 @@ Linear Issueだけではコードベース情報が不足する場合でも、�
 
 このSkillでは以下の意味とする。
 
-* `Backlog`: 初期Planがまだ作成されていない
-* `Todo`: 初期PlanがDescriptionに存在し、Codex側のRepository-aware Planningを開始できる
-* `In Plan Review`: Repositoryを確認したPlanが存在し、レビュー可能またはレビュー中
+- `Backlog`: 初期Planがまだ作成されていない
+- `Todo`: 初期PlanがDescriptionに存在し、Codex側のRepository-aware Planningを開始できる
+- `In Plan Review`: Repositoryを確認したPlanが存在し、レビュー可能またはレビュー中
 
 このSkillは原則として `Todo` で終了する。
 
@@ -226,12 +216,12 @@ Linear Issueだけではコードベース情報が不足する場合でも、�
 
 更新前に以下を確認する。
 
-* 指定されたIssueだけを編集している
-* 既存Issueに明示されていた要件・制約・重要情報を落としていない
-* 事実、仮定、未解決事項を区別している
-* 未確認のコードベース詳細を事実として書いていない
-* 実装プランがCodex側Planningへ引き継げる程度に具体的である
-* テストプランが主要要件と重要なFailure Caseをカバーしている
-* 受け入れ条件が客観的に判定可能である
-* Descriptionの見出し順がテンプレートどおりである
-* `Backlog` から開始した場合、最終Statusが `Todo` になっている
+- 指定されたIssueだけを編集している
+- 既存Issueに明示されていた要件・制約・重要情報を落としていない
+- 事実、仮定、未解決事項を区別している
+- 未確認のコードベース詳細を事実として書いていない
+- 実装プランがCodex側Planningへ引き継げる程度に具体的である
+- テストプランが主要要件と重要なFailure Caseをカバーしている
+- 受け入れ条件が客観的に判定可能である
+- Descriptionの見出し順がテンプレートどおりである
+- `Backlog` から開始した場合、最終Statusが `Todo` になっている
